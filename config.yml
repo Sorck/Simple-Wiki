@@ -1,0 +1,23 @@
+name: smWiki Module
+description: |
+    This is the description for the smWiki module.
+identifier: org.smwiki
+version: 1.0
+author:
+    name: smWiki Dev Team
+    website: http://simplewiki.co.uk
+
+namespaces:
+    php: smCore\smWiki
+    lang: smWiki
+    template: smWiki
+
+routes:
+    main:
+        match: "wiki"
+        controller: Main
+        method: wikiMainMethod
+    view:
+        match: "wiki/(.*)"
+        controller: Main
+        method: wikiPageMethod

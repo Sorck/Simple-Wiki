@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% set page_title = "wiki - " ~ wiki_name_page %}
+
+{% block body %}
+		<div class="well">
+			<h1>{{wiki_name_page}}</h1>
+			<hr />
+			{{wiki_content_page}}
+		</div>
+{% endblock %}

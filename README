@@ -1,5 +1,4 @@
-SimpleWiki © 2010-2011, James Robson
+SimpleWiki © 2010-2012, James Robson
 
-SimpleWiki is a project designed to bring a fully intergrated Wiki Engine into SMF.
-It aims to take full advantage of SMF's permissions system to provide the ultimate
-in Wiki engines.
+SimpleWiki is available in a working form for SMF 2 (please see the thread on the SimpleMachines community forums)
+This repo is for the development of SimpleWiki (smWiki) for smCore.
