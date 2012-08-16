@@ -8,8 +8,8 @@ author:
     website: http://simplewiki.co.uk
 
 namespaces:
-    php: smCore\smWiki
-    lang: smWiki
+    php:      smCore\smWiki
+    lang:     smWiki
     template: smWiki
 
 routes:
@@ -17,6 +17,34 @@ routes:
         match: "wiki"
         controller: Main
         method: wikiMainMethod
+    modify:
+        match: "wiki/modify/(.*)"
+        controller: Modify
+        method: modifyMethod
+    remove:
+        match: "wiki/remove/(.*)"
+        controller: Remove
+        method: removeMethod
+    protect:
+        match: "wiki/protect/(.*)"
+        controller: Protect
+        method: protectMethod
+    move:
+        match: "wiki/move/(.*)"
+        controller: Move
+        method: moveMethod
+    create:
+        match: "wiki/create/(.*)"
+        controller: Create
+        method: createMethod
+    create_blank:
+        match: "wiki/create"
+        controller: Create
+        method: createMethod
+    history:
+        match: "wiki/history/(.*)"
+        controller: History
+        method: historyMethod
     view:
         match: "wiki/(.*)"
         controller: Main
