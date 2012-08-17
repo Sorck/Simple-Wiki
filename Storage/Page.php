@@ -27,7 +27,7 @@
 
 namespace smCore\smWiki\Storage;
 
-use smCore\Application;
+use smCore\Application, smCore\Exception;
 
 class Page
 {
@@ -39,6 +39,11 @@ class Page
 	 * @var array Which variables have been modified?
 	 */
 	protected $_modified = array();
+	/**
+	 *
+	 * @var array Lazy load variables are stored here as they're not always needed.
+	 */
+	protected $_lazy = array();
 
 	/**
 	 * 
@@ -52,13 +57,8 @@ class Page
 		// a null identifier means we're creating a page
 		if($identifier === null)
 		{
-			$this->_data = array(
-				'name' => null,
-				'urlname' => null,
-				'parsed_content' => null,
-				'unparsed_content' => null,
-				'revision' => null,
-			);
+			// set to our defaults...
+			$this->_setFromRow(array());
 		}
 		// are we accessing by revision?
 		elseif(is_integer($identifier))
@@ -66,9 +66,19 @@ class Page
 			// now query the database for our existence
 			$res = $db->query('SELECT *
 				FROM {db_prefix}wiki_content
-				WHERE id_revision = {int:id}', array(
+				WHERE id_revision = {int:id}
+				LIMIT 0,1', array(
 					'id' => $identifier,
 				));
+			// fetch the row
+			$row = $res->fetch();
+			// if this revision doesn't exist then throw an error
+			if(!$row)
+			{
+				throw new Exception('smwiki.storage.identifier_noexist');
+			}
+			// we're still here so we must be fine to set our data
+			$this->_setFromRow($row);
 		}
 		// must be a generic page then
 		elseif(is_string($identifier))
@@ -84,21 +94,49 @@ class Page
 			$row = $res->fetch();
 			// if nothing is returned then we need to moan about it...
 			if(!$row)
-				throw new \Exception('smwiki.storage.identifier_noexist');
+			{
+				throw new Exception('smwiki.storage.identifier_noexist');
+			}
 			// set out internal data structure
-			$this->set(array(
-				'name' => $row['realname'],
-				'urlname' => $row['urlname'],
-				'parsed_content' => $row['parsed_content'],
-				'unparsed_content' => $row['unparsed_content'],
-				'revision' => $row['id_revision']
-			), false);
+			$this->_setFromRow($row);
 		}
 		// you're kidding me? surely we haven't been provided some really dodgy $identifier...
 		else
 		{
-			throw new \Excpetion('smwiki.storage.identifier_invalid');
+			throw new Excpetion('smwiki.storage.identifier_invalid');
 		}
+	}
+	
+	/**
+	 * Make a database row into a page object.
+	 * 
+	 * This function takes a wiki row and sets the Page object structure.
+	 * Also loads some additional data about the page.
+	 * 
+	 * @param array $row A row from the wiki_content table.
+	 */
+	protected function _setFromRow($row)
+	{
+		// make sure we have an array
+		if(!is_array($row))
+		{
+			// this is quite a major internal issue...
+			throw new Exception('smwiki.storage.internal_error');
+		}
+		// get our current error reporting level
+		$e = error_reporting();
+		// surpress undefined index errors...
+		error_reporting(~E_NOTICE);
+		// merge the row data into our protected arra
+		$this->_data += array(
+			'name' => $row['realname'] ?: '',
+			'urlname' => $row['urlname'] ?: '',
+			'parsed_content' => $row['parsed_content'] ?: '',
+			'unparsed_content' => $row['unparsed_content'] ?: '',
+			'revision' => $row['id_revision'] ?: 0,
+		);
+		// revert error reporting level
+		error_reporting($e);
 	}
 	
 	/**
@@ -106,24 +144,32 @@ class Page
 	 */
 	public function save()
 	{
-		
+		// @todo
 	}
 	
 	/**
 	 * Sets wiki page data
 	 * 
-	 * @param type $data
+	 * @param type $data An array of keys that you want to set to their corresponding value.
 	 * @param bool $_do_clean Do we want to clean the data? This is for internal storage class usage.
 	 */
 	public function set($data, $_do_clean = true)
 	{
+		// cycle through all of the $data key/value pairs
 		foreach($data as $k => $v)
 		{
+			// don't bother if it wouldn't change anything
+			if(isset($data[$k]) && $v === $this->_data[$k])
+			{
+				continue;
+			}
+			// if this is being accessed from an external source then we'll be data cleaning
 			if($_do_clean)
 			{
 				// some things need special cleaning requirements
 				switch($k)
 				{
+					// if we're changing the name then we also need to change the urlname
 					case 'name':
 						// make sure it's polished
 						$this->_data['urlname'] = $this->_hrefMake($v);
@@ -144,8 +190,9 @@ class Page
 						break;
 				}
 			}
-			
+			// yep, we've modified this variable
 			$this->_modified[$k] = true;
+			// and remember to store the value
 			$this->_data[$k] = $v;
 		}
 	}
@@ -157,7 +204,34 @@ class Page
 	 */
 	public function get($name)
 	{
-		return isset($this->_data[$name]) ? $this->_data[$name] : null;
+		// if it exists then return it
+		if(isset($this->_data[$name]))
+		{
+			return $this->_data[$name];
+		}
+		// is it supposed to be lazy-loaded?
+		elseif(isset($this->_lazy[$name]))
+		{
+			// this should call a setter for that variable (and perhaps others)
+			call_user_method($this->_lazy[$name], $this, $name);
+			// now see if it exists again...
+			if(isset($this->_data[$name]))
+			{
+				return $this->_data[$name];
+			}
+			else
+			{
+				// this shouldn't be happening so log a debug message
+				// @todo log these issues
+				// and just return a blank value
+				return null;
+			}
+		}
+		// meh... doesn't exist then :(
+		else
+		{
+			return null;
+		}
 	}
 	
 	/**
@@ -166,7 +240,7 @@ class Page
 	 * This is designed to encode a page name for use in a URL.
 	 * It is only to be used when saving a page.
 	 * 
-	 * @param string $name
+	 * @param string $name The non-encoded page name.
 	 * @return string The encoded page name.
 	 */
 	protected function _hrefMake($name)
