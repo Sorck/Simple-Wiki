@@ -21,7 +21,7 @@
  *
  * The Initial Developer of the Original Code is the smWiki project.
  *
- * Portions created by the Initial Developer are Copyright (C) 2011
+ * Portions created by the Initial Developer are Copyright (C) 2012
  * the Initial Developer. All Rights Reserved.
  */
 
@@ -29,6 +29,10 @@ namespace smCore\smWiki\Storage;
 
 use smCore\Application, smCore\Exception;
 
+/**
+ * @todo Enable creation of a page object from an existing
+ * array of page data.
+ */
 class Page implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
@@ -82,6 +86,12 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			// set to our defaults...
 			$this->_setFromRow(array());
 		}
+		// an array means we're trying to initialise a page with that data
+		elseif(is_array($identifier))
+		{
+			// @todo might need to check how good the array is...
+			$this->_setFromRow($identifier);
+		}
 		// are we accessing by revision?
 		elseif(is_integer($identifier))
 		{
@@ -96,8 +106,10 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			{
 				// now query the database for our existence
 				$res = $db->query('SELECT *
-					FROM {db_prefix}wiki_content
+					FROM {db_prefix}wiki_content AS c,
+						{db_prefix}wiki_urls AS u
 					WHERE id_revision = {int:id}
+						AND u.realname = c.name
 					LIMIT 0,1', array(
 						'id' => $identifier,
 					));
