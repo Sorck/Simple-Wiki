@@ -13,7 +13,7 @@ abstract class AbstractWikiController extends Controller
 	 * 
 	 * @param type $route
 	 */
-	public function __construct($route = '')
+	public function __construct($route = '', $load_page = true)
 	{
 		if($route instanceof \smCore\Module)
 		{
@@ -24,8 +24,11 @@ abstract class AbstractWikiController extends Controller
 			$route = 'wiki' . ($route ? '/' . $route : '');
 			// get our page name
 			$this->_page_name = $this->_getPathData($route);
-			// load our page storage
-			$this->_page = new Storage\Page($this->_page_name);
+			if($load_page)
+			{
+				// load our page storage
+				$this->_page = new Storage\Page($this->_page_name);
+			}
 		}
 	}
 	
