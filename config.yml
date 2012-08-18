@@ -45,6 +45,10 @@ routes:
         match: "wiki/history/(.*)"
         controller: History
         method: historyMethod
+    revision:
+        match: "wiki/revision/(.*)"
+        controller: Revision
+        method: revisionMethod
     view:
         match: "wiki/(.*)"
         controller: Main
