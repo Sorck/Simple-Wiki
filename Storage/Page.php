@@ -29,7 +29,7 @@ namespace smCore\smWiki\Storage;
 
 use smCore\Application, smCore\Exception;
 
-class Page
+class Page implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
 	 * @var array Stores internal page data. Access using get method.
@@ -40,10 +40,30 @@ class Page
 	 */
 	protected $_modified = array();
 	/**
-	 *
 	 * @var array Lazy load variables are stored here as they're not always needed.
 	 */
-	protected $_lazy = array();
+	protected $_lazy = array(
+		'total_revisions' => '_lazyTotalRevisions',
+	);
+	/**
+	 * @var array A list of conversions between database collumn names and page collumn names.
+	 */
+	protected $_db_name_convert = array(
+		'id_revision' => 'revision',
+	);
+	
+	/**
+	 * 
+	 * @param string $name The name to convert to the database collumn name.
+	 * @return string The database collumn name.
+	 */
+	protected function _nameToDBName($name)
+	{
+		// flip it so we can easily return what we need
+		$flipped = array_flip($this->_db_name_convert);
+		// if it exists in $flipped then the name is different, else the same
+		return isset($flipped[$name]) ? $flipped[$name] : $name;
+	}
 
 	/**
 	 * 
@@ -53,6 +73,7 @@ class Page
 	{
 		// grab our database connection
 		$db = Application::get('db');
+		$cache = Application::get('cache');
 		
 		// a null identifier means we're creating a page
 		if($identifier === null)
@@ -62,43 +83,67 @@ class Page
 		}
 		// are we accessing by revision?
 		elseif(is_integer($identifier))
-		{		
-			// now query the database for our existence
-			$res = $db->query('SELECT *
-				FROM {db_prefix}wiki_content
-				WHERE id_revision = {int:id}
-				LIMIT 0,1', array(
-					'id' => $identifier,
-				));
-			// fetch the row
-			$row = $res->fetch();
-			// if this revision doesn't exist then throw an error
-			if(!$row)
+		{
+			// try the cache
+			if(false !== $_from_cache = $cache->load('wiki_page_revision_' . $identifier))
 			{
-				throw new Exception('smwiki.storage.identifier_noexist');
+				// merge the cache data into our page data
+				$this->_setFromRow($_from_cache);
 			}
-			// we're still here so we must be fine to set our data
-			$this->_setFromRow($row);
+			// ah well, back to the database
+			else
+			{
+				// now query the database for our existence
+				$res = $db->query('SELECT *
+					FROM {db_prefix}wiki_content
+					WHERE id_revision = {int:id}
+					LIMIT 0,1', array(
+						'id' => $identifier,
+					));
+				// fetch the row
+				$row = $res->fetch();
+				// if this revision doesn't exist then throw an error
+				if(!$row)
+				{
+					throw new Exception('smwiki.storage.identifier_noexist');
+				}
+				// put it in the cache...
+				$cache->save('wiki_page_revision_' . $identifier, $row);
+				// we're still here so we must be fine to set our data
+				$this->_setFromRow($row);
+			}
 		}
 		// must be a generic page then
 		elseif(is_string($identifier))
 		{
-			// query against our urlname database and page database
-			$res = $db->query('SELECT *
-				FROM {db_prefix}wiki_content AS c,
-					{db_prefix}wiki_urls AS href
-				WHERE href.urlname = {text:id}
-					AND href.latest_revision = c.id_revision', array(
-						'id' => $identifier,
-					));
-			$row = $res->fetch();
-			// if nothing is returned then we need to moan about it...
-			if(!$row)
+			// first try the cache
+			if(false !== $_from_cache = $cache->load('wiki_page_name_' . $identifier))
 			{
-				throw new Exception('smwiki.storage.identifier_noexist');
+				// merge this into the cache then
+				$this->_setFromRow($_from_cache);
 			}
-			// set out internal data structure
-			$this->_setFromRow($row);
+			// grr... off to the database then
+			else
+			{
+				// query against our urlname database and page database
+				$res = $db->query('SELECT *
+					FROM {db_prefix}wiki_content AS c,
+						{db_prefix}wiki_urls AS href
+					WHERE href.urlname = {text:id}
+						AND href.latest_revision = c.id_revision', array(
+							'id' => $identifier,
+						));
+				$row = $res->fetch();
+				// if nothing is returned then we need to moan about it...
+				if(!$row)
+				{
+					throw new Exception('smwiki.storage.identifier_noexist');
+				}
+				// shove it into the cache
+				$cache->save('wiki_page_name_' . $identifier, $row);
+				// set out internal data structure
+				$this->_setFromRow($row);
+			}
 		}
 		// you're kidding me? surely we haven't been provided some really dodgy $identifier...
 		else
@@ -134,6 +179,7 @@ class Page
 			'parsed_content' => $row['parsed_content'] ?: '',
 			'unparsed_content' => $row['unparsed_content'] ?: '',
 			'revision' => $row['id_revision'] ?: 0,
+			'id_editor' => $row['id_editor'] ?: 0,
 		);
 		// revert error reporting level
 		error_reporting($e);
@@ -145,6 +191,58 @@ class Page
 	public function save()
 	{
 		// @todo
+		// build our insert query
+		// we can only save if values have been modified
+		if(empty($this->_modified))
+		{
+			return true;
+		}
+		// our known page data values
+		$known = array(
+			'parsed_content' => 'text',
+			'unparsed_content' => 'text',
+			//'urlname' => 'text',
+			'name' => 'text',
+			'id_editor' => 'int',
+		);
+		// we need to do these by lazy functions
+		$toDoByLazy = array();
+		// go through the modified values and see which need lazy updating and which don't
+		foreach($this->_modified as $modified => $b)
+		{
+			if(isset($this->_lazy[$modified]))
+			{
+				$toDoByLazy[] = $modified;
+				unset($this->_modified[$modified]);
+			}
+			// if it's also not known then we have issues
+			if(!isset($known[$modified]) && $modified !== 'urlname')
+			{
+				throw new Exception(array('smwiki.storage.unknown_changed_key', $modified));
+			}
+		}
+		// build our known database query
+		$qry = 'INSERT INTO {db_prefix}wiki_content ';
+		$colls = array();
+		$values = array();
+		$toPass = array();
+		foreach($known AS $m => $n)
+		{
+			$colls[] = $this->_nameToDBName($m);
+			$values[] = '{' . $n . ':' . $m . '}';
+			$toPass[$m] = $this[$m];
+		}
+		// put everything together now
+		$qry .= '(' . implode(',', $colls) .')' .
+			'VALUES (' . implode(',', $values).')';
+		// get our database connection
+		$db = Application::get('db');
+		// now run the query
+		$db->query($qry, $toPass);
+		// get our new id_revision
+		$id = $db->lastInsertId();
+		// @todo update the wiki_urls table?
+		// @todo do our lazy variable saving
 	}
 	
 	/**
@@ -159,7 +257,7 @@ class Page
 		foreach($data as $k => $v)
 		{
 			// don't bother if it wouldn't change anything
-			if(isset($data[$k]) && $v === $this->_data[$k])
+			if(isset($this->_data[$k]) && $v === $this->_data[$k])
 			{
 				continue;
 			}
@@ -185,15 +283,22 @@ class Page
 							'parsed_content' => true,
 							'unparsed_content' => true,
 						);
-						// continue because we don't want to change the content key
-						continue;
-						break;
+						// continue to next foreach value because we don't want to change the content key
+						continue 2;
 				}
 			}
-			// yep, we've modified this variable
-			$this->_modified[$k] = true;
-			// and remember to store the value
-			$this->_data[$k] = $v;
+			// if it's a lazy variable then it can set itself...
+			if(isset($this->_lazy[$k]))
+			{
+				$this->{$this->_lazy[$k]}($k, $v);
+			}
+			else
+			{
+				// yep, we've modified this variable
+				$this->_modified[$k] = true;
+				// and remember to store the value
+				$this->_data[$k] = $v;
+			}
 		}
 	}
 	
@@ -212,8 +317,35 @@ class Page
 		// is it supposed to be lazy-loaded?
 		elseif(isset($this->_lazy[$name]))
 		{
-			// this should call a setter for that variable (and perhaps others)
-			call_user_method($this->_lazy[$name], $this, $name);
+			$cache = Application::get('cache');
+			// try a cache load
+			if(false !== $_from_cache = $cache->load('wiki_page_' . $this['name'] . '_lazy_' . $name))
+			{
+				$this->_data += $_from_cache;
+			}
+			else
+			{
+				// get all keys we have
+				$keys = array();
+				foreach($this->_data as $k => $v)
+				{
+					$keys[] = $k;
+				}
+				// this should call a setter for that variable (and perhaps others)
+				$this->{$this->_lazy[$name]}();
+				// now get our new keys
+				$newdata = array();
+				foreach($this->_data as $k => $v)
+				{
+					if(!in_array($k, $keys))
+					{
+						$newdata[$k] = $v;
+					}
+				}
+				// cache the $newdata
+				$cache->save('wiki_page_' . $this['name'] . '_lazy_' . $name, $newdata);
+				
+			}
 			// now see if it exists again...
 			if(isset($this->_data[$name]))
 			{
@@ -234,6 +366,37 @@ class Page
 		}
 	}
 	
+	protected function _lazyTotalRevisions($key = null, $value = null)
+	{
+		// are we saving it?
+		if(!is_null($key))
+		{
+			// sorry but we can't change the total number of revisions
+			if($key === 'total_revisions')
+			{
+				throw new Exception(array('smwiki.storage.lazy.cannot_set', $key));
+			}
+			else
+			{
+				// erm... why're we being told to set this? :-\
+				throw new Exception(array('smwiki.storage.lazy.wrong_setter', $key));
+			}
+		}
+		// must just be loading
+		else
+		{
+			// count up the revisions
+			$row = Application::get('db')->query('SELECT count(id_revision) AS cnt
+				FROM {db_prefix}wiki_content
+				WHERE name = {text:name}',
+				array(
+					'name' => $this->get('name'),
+				))->fetch();
+			// and now set the value
+			$this->_data['total_revisions'] = $row['cnt'];
+		}
+	}
+		
 	/**
 	 * Encodes a page name for a Wiki URL.
 	 * 
@@ -255,5 +418,78 @@ class Page
 		
 		// silly encryption of slashes needs undoing...
 		return str_replace('%2F', '/', $name);
+	}
+
+	/**
+	 * @param mixed $offset 
+	 * @return bool Whether or not $offset exixts.
+	 */
+	public function offsetExists($offset)
+	{
+		return isset($this->_data[$offset]);
+	}
+
+	/**
+	 * @param mixed $offset The key you want to find the value of.
+	 * @return mixed The value of key $offset.
+	 */
+	public function offsetGet($offset)
+	{
+		return $this->get($offset);
+	}
+
+	/**
+	 * 
+	 * @param type $offset The key to set the value of.
+	 * @param type $value The value to set.
+	 */
+	public function offsetSet($offset, $value)
+	{
+		// just use our existing function
+		$this->set(array($offset => $value));
+	}
+
+	/**
+	 * @param type $offset The key to unset.
+	 */
+	public function offsetUnset($offset)
+	{
+		// if it already exists then yes, we have changed it's value
+		if(isset($this->_data[$offset]))
+		{
+			$this->_modified[$offset] = true;
+		}
+		// null'ing it is better for us...
+		$this->_data[$offset] = null;
+	}
+	
+	public function rewind()
+	{
+		reset($this->_data);
+	}
+	
+	public function current()
+	{
+		return current($this->_data);
+	}
+	
+	public function key()
+	{
+		return key($this->_data);
+	}
+	
+	public function next()
+	{
+		return next($this->_data);
+	}
+	
+	public function valid()
+	{
+		return $this->current() !== false;
+	}
+	
+	public function count()
+	{
+		return count($this->_data);
 	}
 }
