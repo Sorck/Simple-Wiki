@@ -38,10 +38,7 @@ abstract class AbstractWikiController extends Controller
 	protected function _render($template = "wiki_page", $context = array())
 	{
 		return $this->_getParentModule()->render($template, array_merge(array(
-			'wiki_name_page' => $this->_page->get('name'),
-			'wiki_content_page' => $this->_page->get('parsed_content'),
-			'wiki_name_page_href' => $this->_page->get('urlname'),
-			'wiki_page_revision' => $this->_page->get('revision'),
+			'page' => $this->_page,
 			// @todo Get this data from the database...
 			'wiki_menu_data' => array(
 				array(
