@@ -21,7 +21,7 @@
 		<div class="well">
 			<ul class="nav nav-pills pull-right">
 				<li class="active">
-					<a href="{{scripturl}}/wiki/revision/{{wiki_page_revision}}">Permalink</a>
+					<a href="{{scripturl}}/wiki/revision/{{page.revision}}">Permalink</a>
 				</li>
 				<li class="dropdown" id="wiki_page_tools">
 					<a class="dropdown-toggle" data-toggle="dropdown" href="#wiki_page_tools">
@@ -29,14 +29,15 @@
 						<b class="caret"></b>
 					</a>
 					<ul class="dropdown-menu">
-						<li><a href="{{scripturl}}/wiki/modify/{{wiki_name_page_href}}">Edit</a></li>
-						<li><a href="{{scripturl}}/wiki/move/{{wiki_name_page_href}}">Move</a></li>
+						<li><a href="{{scripturl}}/wiki/modify/{{page.urlname}}">Edit</a></li>
+						<li><a href="{{scripturl}}/wiki/move/{{page.urlname}}">Move</a></li>
+						<li><a href="{{scripturl}}/wiki/protect/{{page.urlname}}">Protect</a></li>
 						<li class="divider"></li>
-						<li><a href="{{scripturl}}/wiki/history/{{wiki_name_page_href}}">History</a></li>
+						<li><a href="{{scripturl}}/wiki/history/{{page.urlname}}">History</a></li>
 					</ul>
 				</li>
 			</ul>
-			{{wiki_content_page|raw}}
+			{{page.parsed_content|raw}}
 		</div>
 	</div>
 </div>
