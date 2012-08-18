@@ -326,7 +326,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 		{
 			$cache = Application::get('cache');
 			// try a cache load
-			if(false !== $_from_cache = $cache->load('wiki_page_' . $this['name'] . '_lazy_' . $name))
+			if(false !== $_from_cache = $cache->load('wiki_page_' . $this['revision'] . '_lazy_' . $name))
 			{
 				$this->_data += $_from_cache;
 			}
@@ -350,7 +350,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 					}
 				}
 				// cache the $newdata
-				$cache->save('wiki_page_' . $this['name'] . '_lazy_' . $name, $newdata);
+				$cache->save('wiki_page_' . $this['revision'] . '_lazy_' . $name, $newdata);
 				
 			}
 			// now see if it exists again...
@@ -370,6 +370,58 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 		else
 		{
 			return null;
+		}
+	}
+	
+	/**
+	 * Cleans the cache of data about this page.
+	 * 
+	 * @param bool $all_revisions Should only the current revision be cleaned or all revisions?
+	 */
+	public function flush($all_revisions = false)
+	{
+		// grab the cache
+		$cache = Application::get('cache');
+		// remove the generic cache of this page
+		$cache->remove('wiki_page_name_' . $this['urlname']);
+		// if we're doing them all then we have to do this tactfully...
+		if($all_revisions === true)
+		{
+			$res = Application::get('db')->query('SELECT id_revision
+				FROM {db_prefix}wiki_content
+				WHERE name = {text:name}');
+			while($row = $res->fetch())
+			{
+				$this->_flushRevision($row['id_revision']);
+			}
+		}
+		else
+		{
+			$this->_flushRevision($this['revision']);
+		}
+	}
+	
+	/**
+	 * Internal function to flush a particular wiki page revision from the cache.
+	 * 
+	 * @param mixed $id An int or array_int.
+	 * @throws \smCore\Exception
+	 */
+	protected function _flushRevision($id)
+	{
+		// better be an integer...
+		if(!is_int($id))
+		{
+			throw new Exception('smwiki.storage.flush.not_int_revision');
+		}
+		// get the cache
+		$cache = Application::get('cache');
+		// delete the plain old revision data
+		$cache->remove('wiki_page_revision_' . $id);
+		// now remove all lazy load cache data
+		foreach($this->_lazy as $name => $method)
+		{
+			$cache->remove('wiki_page_' . $this['revision'] . '_lazy_' . $name);
 		}
 	}
 	
