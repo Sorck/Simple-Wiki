@@ -44,6 +44,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 */
 	protected $_lazy = array(
 		'total_revisions' => '_lazyTotalRevisions',
+		'urlname' => '_lazyUrlname',
 	);
 	/**
 	 * @var array A list of conversions between database collumn names and page collumn names.
@@ -180,6 +181,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			'unparsed_content' => $row['unparsed_content'] ?: '',
 			'revision' => $row['id_revision'] ?: 0,
 			'id_editor' => $row['id_editor'] ?: 0,
+			'is_new' => $row['id_revision'] ? false : true,
 		);
 		// revert error reporting level
 		error_reporting($e);
@@ -240,9 +242,14 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 		// now run the query
 		$db->query($qry, $toPass);
 		// get our new id_revision
-		$id = $db->lastInsertId();
-		// @todo update the wiki_urls table?
-		// @todo do our lazy variable saving
+		$this['revision'] = $db->lastInsertId();
+		// @todo update the wiki_urls table? NB should be done lazily now
+		// do our lazy variable saving
+		foreach($toDoByLazy as $lazy)
+		{
+			// this just looks confusing... but it works :P
+			$this->{$this->_lazy[$lazy]}($lazy, $this->_data[$lazy]);
+		}
 	}
 	
 	/**
@@ -290,7 +297,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			// if it's a lazy variable then it can set itself...
 			if(isset($this->_lazy[$k]))
 			{
-				$this->{$this->_lazy[$k]}($k, $v);
+				$this->{$this->_lazy[$k]}();
 			}
 			else
 			{
@@ -366,6 +373,12 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 		}
 	}
 	
+	/**
+	 * 
+	 * @param type $key
+	 * @param type $value
+	 * @throws Exception
+	 */
 	protected function _lazyTotalRevisions($key = null, $value = null)
 	{
 		// are we saving it?
@@ -394,6 +407,31 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 				))->fetch();
 			// and now set the value
 			$this->_data['total_revisions'] = $row['cnt'];
+		}
+	}
+	
+	/**
+	 * 
+	 * @param type $key
+	 * @param type $value
+	 */
+	protected function _lazyUrlname($key = null, $value = null)
+	{
+		if(!is_null($key))
+		{
+			// we must be saving then
+			Application::get('db')->query('REPLACE INTO {db_prefix}wiki_urls
+				(urlname, realname, latest_revision)
+				VALUES({text:urlname}, {text:realname}, {int:latest_revision})', array(
+					'urlname' => $this['urlname'],
+					'realname' => $this['name'],
+					'latest_revision' => $this['revision'],
+				));
+		}
+		else
+		{
+			// honestly, WTH are we being set here for?
+			throw new Exception('smwiki.storage.lazy.not_implemented');
 		}
 	}
 		
