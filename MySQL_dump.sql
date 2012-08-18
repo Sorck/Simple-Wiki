@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `wiki_content` (
   `parsed_content` text NOT NULL,
   `time` int(11) NOT NULL,
   PRIMARY KEY (`id_revision`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=17 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `wiki_content`
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `wiki_urls` (
   `realname` varchar(128) NOT NULL,
   `latest_revision` int(11) NOT NULL,
   PRIMARY KEY (`urlname`,`realname`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `wiki_urls`
