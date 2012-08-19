@@ -47,7 +47,9 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 * @var array Lazy load variables are stored here as they're not always needed.
 	 */
 	protected $_lazy = array(
+		// returns how many revisions this page has had
 		'total_revisions' => '_lazyTotalRevisions',
+		// this is here due to it saving in a different table
 		'urlname' => '_lazyUrlname',
 	);
 	/**
@@ -194,6 +196,8 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			'revision' => $row['id_revision'] ?: 0,
 			'id_editor' => $row['id_editor'] ?: 0,
 			'is_new' => $row['id_revision'] ? false : true,
+			'time' => $row['time'] ?: 0,
+			'ip' => $row['ip'] ?: '127.0.0.1',
 		);
 		// revert error reporting level
 		error_reporting($e);
@@ -218,6 +222,8 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			//'urlname' => 'text',
 			'name' => 'text',
 			'id_editor' => 'int',
+			'ip' => 'int',
+			'time' => 'int',
 		);
 		// we need to do these by lazy functions
 		$toDoByLazy = array();
