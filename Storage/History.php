@@ -93,7 +93,7 @@ class History implements \ArrayAccess, \Iterator, \Countable
 		try
 		{
 			// make sure this page exists
-			$this->_orig_page = new Storage\Page($page_name);
+			$this->_orig_page = $this->_data = new Storage\Page($page_name);
 		}
 		// it doesn't exist?! We need to report this...
 		catch(Exception $e)
@@ -112,7 +112,7 @@ class History implements \ArrayAccess, \Iterator, \Countable
 				'name' => $this->_orig_page['name'],
 				'offset' => $offset,
 				'limit' => $limit,
-			));var_dump($this);
+			));
 		// now fetch the pages :)
 		while($row = $res->fetch())
 		{
