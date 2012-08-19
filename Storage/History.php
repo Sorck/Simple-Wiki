@@ -25,24 +25,106 @@
  * the Initial Developer. All Rights Reserved.
  */
 
+namespace smCore\smWiki\Storage;
+
+use smCore\smWiki\Storage, smCore\Exception, smCore\Application;
+
 class History implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
-	 *
 	 * @var array An array of page objects
 	 */
 	protected $_pages = array();
+	/**
+	 * @var array A secondary array of data.
+	 */
+	protected $_data = array();
+	/**
+	 * @var smCore\smWiki\Storage\Page
+	 */
+	protected $_orig_page;
 	
 	/**
+	 * Create a History storage object.
 	 * 
-	 * @param type $page_name
-	 * @param type $offset
-	 * @param type $limit
-	 * @param type $order
+	 * @param string $page_name The urlname of a wiki page
+	 * @param int $offset The offset for getting the history data
+	 * @param int $limit The maximum number of pages to return.
+	 * @param string $order Order revisions in asc or desc order
+	 * @throws smCore\Exception
 	 */
 	public function __construct($page_name, $offset = 0, $limit = 10, $order = 'desc')
 	{
-		// @todo
+		// verify our variables
+		// Are we ordering by ascending or descending?
+		if(!in_array(strtolower($order), array('asc', 'desc')))
+		{
+			throw new Exception(array('smwiki.storage.history.invalid', 'order', $order));
+		}
+		// Are out offset and limit integers?
+		if(!is_int($limit))
+		{
+			// this basically checks that it's a number...
+			if((string) (int) $limit == (string) $limit)
+			{
+				$limit = (int) $limit;
+			}
+			// ah well, it's still not a number so lets throw a coplaint...
+			else
+			{
+				throw new Exception(array('smwiki.storage.history.invalid', 'limit', $limit));
+			}
+		}
+		if(!is_int($offset))
+		{
+			// another number check...
+			if((string) (int) $offset == (string) $offset)
+			{
+				$offset = (int) $offset;
+			}
+			// what is it with us not being provided numbers?
+			else
+			{
+				throw new Exception(array('smwiki.storage.history.invalid', 'offset', $offset));
+			}
+		}
+		
+		// now off to trying to get the right data
+		try
+		{
+			// make sure this page exists
+			$this->_orig_page = new Storage\Page($page_name);
+		}
+		// it doesn't exist?! We need to report this...
+		catch(Exception $e)
+		{
+			throw new Exception('smwiki.storage.history.noexist');
+		}
+		
+		// grab our database connection
+		$db = Application::get('db');
+		// now query for the pages we need...
+		$res = $db->query('SELECT *
+			FROM {db_prefix}wiki_content
+			WHERE name = {text:name}
+			ORDER BY id_revision ' . strtolower($order) . '
+			LIMIT ' . $offset . ',' . $limit . '', array(
+				'name' => $this->_orig_page['name'],
+				'offset' => $offset,
+				'limit' => $limit,
+			));var_dump($this);
+		// now fetch the pages :)
+		while($row = $res->fetch())
+		{
+			// add a Page storage...
+			$this->_pages[] = new Storage\Page($row);
+		}
+		// if no pages have been defined then lets throw an exception
+		if(!isset($this->_pages[0]))
+		{
+			throw new Exception('smwiki.storage.history.empty_range');
+		}
+		// @todo Might need to check for things like page moves, deletes etc
 	}
 	
 	/**
@@ -51,7 +133,14 @@ class History implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function offsetExists($offset)
 	{
-		return isset($this->_pages[$offset]);
+		if(is_int($offset))
+		{
+			return isset($this->_pages[$offset]);
+		}
+		else
+		{
+			return isset($this->_data[$offset]);
+		}
 	}
 
 	/**
@@ -60,7 +149,14 @@ class History implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function offsetGet($offset)
 	{
-		return $this->_pages[$offset];
+		if(is_int($offset))
+		{
+			return $this->_pages[$offset];
+		}
+		else
+		{
+			return $this->_data[$offset];
+		}
 	}
 
 	/**
@@ -70,8 +166,14 @@ class History implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function offsetSet($offset, $value)
 	{
-		// just use our existing function
-		$this->_pages[$offset] = $value;
+		if($value instanceof Storage\Page && is_int($offset))
+		{
+			$this->_pages[$offset] = $value;
+		}
+		else
+		{
+			$this->_data[$offset] = $value;
+		}
 	}
 
 	/**
@@ -79,7 +181,14 @@ class History implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function offsetUnset($offset)
 	{
-		unset($this->_pages[$offset]);
+		if(is_int($offset))
+		{
+			unset($this->_pages[$offset]);
+		}
+		else
+		{
+			unset($this->_data[$offset]);
+		}
 	}
 	
 	public function rewind()
