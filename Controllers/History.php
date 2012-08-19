@@ -9,7 +9,16 @@ use smCore\smWiki\Storage, smCore\Settings, smCore\Application, smCore\Exception
  */
 class History extends AbstractWikiController
 {
-	public function __construct($module)
+	/**
+	 *
+	 * @var type 
+	 */
+	protected $_history = null;
+	
+	/**
+	 * @param \smCore\Module $module
+	 */
+	public function __construct(\smCore\Module $module)
 	{
 		parent::__construct($module);
 	}
@@ -32,16 +41,19 @@ class History extends AbstractWikiController
 			}
 			else
 			{
-				throw new Exception('smwiki.history.invalid_request');
+				// redirect
+				Application::get('response')->redirect('wiki/revision/' . (int) $get['revision']);
+				throw new Exception('smwiki.history.malformed_request');
 			}
 		}
 		else
 		{
-			// this loads current page data
-			parent::__construct('history');
+			// @todo Check the GET cage for limit and offset and order values
+			// this loads some basic page info
+			parent::__construct('history', false);
 			// now get a History storage
-			$this->_history = new Storage\History($this->page_name);
-			return $this->_render('wiki_history');
+			$this->_history = new Storage\History($this->_page_name);
+			return $this->_render('wiki_history', array('history' => $this->_history));
 		}
 	}
 }
