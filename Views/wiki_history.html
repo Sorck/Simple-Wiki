@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% set page_title = "wiki - " ~ history.name %}
+
+{% block body %}
+<div class="page-header">
+	<h1>{{history.name}}</h1>
+</div>
+<div class="row">
+	<div class="span3 columns">
+		<div class="well">
+			<ul class="nav nav-list">
+			{% for item in wiki_menu_data %}
+			<li><a href="{{item.link}}">{{item.title}}</a></li>
+			{% endfor %}
+			</ul>
+		</div>
+	</div>
+	<div class="span9 columns">
+		
+		<div class="well">
+			<ul class="nav nav-pills pull-right">
+				{# @todo not sure if these really fit in this circumstance #}
+				<li class="active">
+					<a href="{{scripturl}}/wiki/history/{{history.urlname}}/?page=0;order=desc">Permalink</a>
+				</li>
+				<li>
+					<a href="{{scripturl}}/wiki/{{history.urlname}}">View Page</a>
+				</li>
+				<li class="dropdown" id="wiki_page_tools">
+					<a class="dropdown-toggle" data-toggle="dropdown" href="#wiki_page_tools">
+						Page Toolbox
+						<b class="caret"></b>
+					</a>
+					<ul class="dropdown-menu">
+						<li><a href="{{scripturl}}/wiki/modify/{{history.urlname}}">Edit</a></li>
+						<li><a href="{{scripturl}}/wiki/move/{{history.urlname}}">Move</a></li>
+						<li><a href="{{scripturl}}/wiki/protect/{{history.urlname}}">Protect</a></li>
+						<li class="divider"></li>
+						<li><a href="{{scripturl}}/wiki/history/{{history.urlname}}">History</a></li>
+					</ul>
+				</li>
+			</ul>
+			<table class="table table-bordered table-striped">
+				<thead>
+					<tr>
+						<th>Revision ID</th>
+						<th>When?</th>
+						<th>Editor</th>
+						<th>&nbsp;</th>
+					</tr>
+				</thead>
+				<tbody>
+{% for i in history %}
+					<tr>
+						<td>{{i.revision}}</td>
+						<td>{{i.time|date}}</td>
+						<td>{% if i.user.name is null %}{{i.ip}}{% else %}i.user.name{% endif %}</td>
+						<td><a href="{{scripturl}}/wiki/revision/{{i.revision}}">view</a></td>
+					</tr>
+{% endfor %}
+				</tbody>
+			</table>
+			{% import "macros.html" as m %}
+			{{ m.pagination(scripturl~"wiki/history/"~history.urlname~"?page=", history.total_revisions/10, 0) }}
+		</div>
+	</div>
+</div>
+{% endblock %}
