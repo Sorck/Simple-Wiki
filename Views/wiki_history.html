@@ -1,12 +1,24 @@
 {% extends "layout.html" %}
+{% import "@smWiki/wiki_macros.html" as a %}
 
 {% set page_title = "wiki - " ~ history.name %}
 
 {% block body %}
 <div class="page-header">
-	<h1>{{history.name}}</h1>
+	<h1>{{history.name}} <small>history</small></h1>
 </div>
 <div class="row">
+	<div class="span12 columns">
+		<ul class="breadcrumb">
+			<li>
+				<a href="{{scripturl}}/wiki/Main_Page">Wiki</a> <span class="divider">/</span>
+			</li>
+			<li>
+				<a href="{{scripturl}}/wiki/{{history.urlname}}">{{history.name}}</a> <span class="divider">/</span>
+			</li>
+			<li class="active">History</li>
+		</ul>
+	</div>
 	<div class="span3 columns">
 		<div class="well">
 			<ul class="nav nav-list">
@@ -19,28 +31,8 @@
 	<div class="span9 columns">
 		
 		<div class="well">
-			<ul class="nav nav-pills pull-right">
-				{# @todo not sure if these really fit in this circumstance #}
-				<li class="active">
-					<a href="{{scripturl}}/wiki/history/{{history.urlname}}/?page=0;order=desc">Permalink</a>
-				</li>
-				<li>
-					<a href="{{scripturl}}/wiki/{{history.urlname}}">View Page</a>
-				</li>
-				<li class="dropdown" id="wiki_page_tools">
-					<a class="dropdown-toggle" data-toggle="dropdown" href="#wiki_page_tools">
-						Page Toolbox
-						<b class="caret"></b>
-					</a>
-					<ul class="dropdown-menu">
-						<li><a href="{{scripturl}}/wiki/modify/{{history.urlname}}">Edit</a></li>
-						<li><a href="{{scripturl}}/wiki/move/{{history.urlname}}">Move</a></li>
-						<li><a href="{{scripturl}}/wiki/protect/{{history.urlname}}">Protect</a></li>
-						<li class="divider"></li>
-						<li><a href="{{scripturl}}/wiki/history/{{history.urlname}}">History</a></li>
-					</ul>
-				</li>
-			</ul>
+			{{ a.wiki_page_menu(page_menu_data) }}
+
 			<table class="table table-bordered table-striped">
 				<thead>
 					<tr>
