@@ -62,7 +62,7 @@
 				</tbody>
 			</table>
 			{% import "macros.html" as m %}
-			{{ m.pagination(scripturl~"wiki/history/"~history.urlname~"?page=", history.total_revisions/10, 0) }}
+			{{ m.pagination(scripturl~"/wiki/history/"~history.urlname~"?page=", history.total_revisions/10, 0) }}
 		</div>
 	</div>
 </div>
