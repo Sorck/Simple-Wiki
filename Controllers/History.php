@@ -49,10 +49,14 @@ class History extends AbstractWikiController
 		else
 		{
 			// @todo Check the GET cage for limit and offset and order values
+			$get = Application::get('input')->get;
+			$offset = isset($get['page']) ? (int) $get['page']*10 : 0;
+			$limit = isset($get['limit']) && (int) $get['limit'] > 0 ? (int) $get['limit'] : 10;
+			$order = isset($get['order']) && in_array($get['order'], array('asc', 'desc')) ? strtolower($get['order']) : 'desc';
 			// this loads some basic page info
 			parent::__construct('history', false);
 			// now get a History storage
-			$this->_history = new Storage\History($this->_page_name);
+			$this->_history = new Storage\History($this->_page_name, $offset, $limit, $order);
 			return $this->_render('wiki_history', array('history' => $this->_history));
 		}
 	}
