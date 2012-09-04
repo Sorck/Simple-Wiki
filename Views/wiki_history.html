@@ -1,38 +1,9 @@
-{% extends "layout.html" %}
+{% extends "@smWiki/wiki_base.html" %}
 {% import "@smWiki/wiki_macros.html" as a %}
 
 {% set page_title = "wiki - " ~ history.name %}
 
-{% block body %}
-<div class="page-header">
-	<h1>{{history.name}} <small>history</small></h1>
-</div>
-<div class="row">
-	<div class="span12 columns">
-		<ul class="breadcrumb">
-			<li>
-				<a href="{{scripturl}}/wiki/Main_Page">Wiki</a> <span class="divider">/</span>
-			</li>
-			<li>
-				<a href="{{scripturl}}/wiki/{{history.urlname}}">{{history.name}}</a> <span class="divider">/</span>
-			</li>
-			<li class="active">History</li>
-		</ul>
-	</div>
-	<div class="span3 columns">
-		<div class="well">
-			<ul class="nav nav-list">
-			{% for item in wiki_menu_data %}
-			<li><a href="{{item.link}}">{{item.title}}</a></li>
-			{% endfor %}
-			</ul>
-		</div>
-	</div>
-	<div class="span9 columns">
-		
-		<div class="well">
-			{{ a.wiki_page_menu(page_menu_data) }}
-
+{% block wiki_content %}
 			<table class="table table-bordered table-striped">
 				<thead>
 					<tr>
@@ -55,7 +26,4 @@
 			</table>
 			{% import "macros.html" as m %}
 			{{ m.pagination(scripturl~"/wiki/history/"~history.urlname~"?page=", history.total_revisions/10, 0) }}
-		</div>
-	</div>
-</div>
 {% endblock %}

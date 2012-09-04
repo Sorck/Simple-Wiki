@@ -57,7 +57,11 @@ class History extends AbstractWikiController
 			parent::__construct('history', false);
 			// now get a History storage
 			$this->_history = new Storage\History($this->_page_name, $offset, $limit, $order);
-			return $this->_render('wiki_history', array('history' => $this->_history));
+			return $this->_render('wiki_history', array('history' => $this->_history, 'crumbs' => array(
+				new Storage\Menu('Wiki', '', 'wiki/', false),
+				new Storage\Menu($this->_history['name'], '', 'wiki/'.$this->_history['urlname'], false),
+				new Storage\Menu('History', '', 'wiki/history/'.$this->_history['urlname'], true),
+			)));
 		}
 	}
 }

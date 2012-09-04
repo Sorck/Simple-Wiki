@@ -27,9 +27,9 @@
 
 namespace smCore\smWiki\Storage;
 
-use smCore\smWiki\Storage, smCore\Exception, smCore\Application;
+use smCore\smWiki\Storage, smCore\Exception, smCore\Application, smCore\Module;
 
-class History implements \ArrayAccess, \Iterator, \Countable
+class History extends \smCore\Module\Storage implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
 	 * @var array An array of page objects
@@ -55,6 +55,11 @@ class History implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function __construct($page_name, $offset = 0, $limit = 10, $order = 'desc')
 	{
+		// sort out dependancy injection...
+		if($page_name instanceof Application && $offset instanceof Module)
+		{
+			parent::__construct($page_name, $offset);
+		}
 		// verify our variables
 		// Are we ordering by ascending or descending?
 		if(!in_array(strtolower($order), array('asc', 'desc')))

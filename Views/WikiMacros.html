@@ -31,7 +31,7 @@
 {% macro breadcrumb(data) %}
 <ul class="breadcrumb">
 	{% for i in data %}
-		<li{% if i.active %} class="active"{% endif %}>{% if not i.active %}<a href="{{i.href}}">{{i.name}}</a>{% else %}{{i.name}}{% endif %}
+		<li{% if i.active %} class="active"{% endif %}>{% if not i.active %}<a href="{{scripturl ~ '/' ~ i.href|join('/')}}">{{i.name}}</a>{% else %}{{i.name}}{% endif %}
 			{% if not loop.last %}<span class="divider">/</span>{% endif %}
 		</li>
 	{% endfor %}

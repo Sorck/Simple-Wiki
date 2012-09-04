@@ -37,6 +37,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
 	 * @var array Stores internal page data. Access using get method.
+	 * @todo make this array contain default values
 	 */
 	protected $_data = array();
 	/**
@@ -66,6 +67,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 */
 	protected function _nameToDBName($name)
 	{
+		throw new Exception('smwiki.storage.deprecetated.n2');
 		// flip it so we can easily return what we need
 		$flipped = array_flip($this->_db_name_convert);
 		// if it exists in $flipped then the name is different, else the same
@@ -79,8 +81,8 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	public function __construct($identifier = null)
 	{
 		// grab our database connection
-		$db = Application::get('db');
-		$cache = Application::get('cache');
+		#$db = Application::get('db');
+		#$cache = Application::get('cache');
 		
 		// a null identifier means we're creating a page
 		if($identifier === null)
@@ -94,76 +96,9 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			// @todo might need to check how good the array is...
 			$this->_setFromRow($identifier);
 		}
-		// are we accessing by revision?
-		elseif(is_integer($identifier))
-		{
-			// try the cache
-			if(false !== $_from_cache = $cache->load('wiki_page_revision_' . $identifier))
-			{
-				// merge the cache data into our page data
-				$this->_setFromRow($_from_cache);
-			}
-			// ah well, back to the database
-			else
-			{
-				// now query the database for our existence
-				$res = $db->query('SELECT *
-					FROM {db_prefix}wiki_content AS c,
-						{db_prefix}wiki_urls AS u
-					WHERE id_revision = {int:id}
-						AND u.realname = c.name
-					LIMIT 0,1', array(
-						'id' => $identifier,
-					));
-				// fetch the row
-				$row = $res->fetch();
-				// if this revision doesn't exist then throw an error
-				if(!$row)
-				{
-					throw new Exception('smwiki.storage.identifier_noexist');
-				}
-				// put it in the cache...
-				$cache->save('wiki_page_revision_' . $identifier, $row);
-				// we're still here so we must be fine to set our data
-				$this->_setFromRow($row);
-			}
-		}
-		// must be a generic page then
-		elseif(is_string($identifier))
-		{
-			// first try the cache
-			if(false !== $_from_cache = $cache->load('wiki_page_name_' . $identifier))
-			{
-				// merge this into the cache then
-				$this->_setFromRow($_from_cache);
-			}
-			// grr... off to the database then
-			else
-			{
-				// query against our urlname database and page database
-				$res = $db->query('SELECT *
-					FROM {db_prefix}wiki_content AS c,
-						{db_prefix}wiki_urls AS href
-					WHERE href.urlname = {text:id}
-						AND href.latest_revision = c.id_revision', array(
-							'id' => $identifier,
-						));
-				$row = $res->fetch();
-				// if nothing is returned then we need to moan about it...
-				if(!$row)
-				{
-					throw new Exception('smwiki.storage.identifier_noexist');
-				}
-				// shove it into the cache
-				$cache->save('wiki_page_name_' . $identifier, $row);
-				// set out internal data structure
-				$this->_setFromRow($row);
-			}
-		}
-		// you're kidding me? surely we haven't been provided some really dodgy $identifier...
 		else
 		{
-			throw new Excpetion('smwiki.storage.identifier_invalid');
+			throw new Exception('smwiki.storage.deprecetated.con');
 		}
 	}
 	
@@ -175,18 +110,23 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 * 
 	 * @param array $row A row from the wiki_content table.
 	 */
-	protected function _setFromRow($row)
+	protected function _setFromRow(array $row)
 	{
 		// make sure we have an array
+		// @todo Surely php will error out first as we require an array?
 		if(!is_array($row))
 		{
 			// this is quite a major internal issue...
 			throw new Exception('smwiki.storage.internal_error');
 		}
+		// @todo verify this array
+		$this->_data += $row;
+		//throw new Exception('smwiki.storage.deprecetated');
 		// get our current error reporting level
-		$e = error_reporting();
+		/*$e = error_reporting();
 		// surpress undefined index errors...
 		error_reporting(~E_NOTICE);
+		$this->_data += $row;
 		// merge the row data into our protected arra
 		$this->_data += array(
 			'name' => $row['realname'] ?: '',
@@ -200,14 +140,14 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 			'ip' => $row['ip'] ?: '127.0.0.1',
 		);
 		// revert error reporting level
-		error_reporting($e);
+		error_reporting($e);*/
 	}
 	
 	/**
 	 * Saves the current page data as a new revision
 	 */
 	public function save()
-	{
+	{throw new Exception('smwiki.storage.deprecetated_save');
 		// @todo
 		// build our insert query
 		// we can only save if values have been modified
@@ -312,6 +252,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 						continue 2;
 				}
 			}
+			$v = is_array($v) ? new \smCore\smWiki\Library\WikiArray($v) : $v;
 			// if it's a lazy variable then it can set itself...
 			if(isset($this->_lazy[$k]))
 			{
@@ -341,7 +282,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 		}
 		// is it supposed to be lazy-loaded?
 		elseif(isset($this->_lazy[$name]))
-		{
+		{throw new Exception('smwiki.storage.deprecetated');
 			$cache = Application::get('cache');
 			// try a cache load
 			if(false !== $_from_cache = $cache->load('wiki_page_' . $this['revision'] . '_lazy_' . $name))
@@ -426,7 +367,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 * @throws \smCore\Exception
 	 */
 	protected function _flushRevision($id)
-	{
+	{throw new Exception('smwiki.storage.deprecetated');
 		// better be an integer...
 		if(!is_int($id))
 		{
@@ -450,7 +391,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 * @throws Exception
 	 */
 	protected function _lazyTotalRevisions($key = null, $value = null)
-	{
+	{throw new Exception('smwiki.storage.deprecetated');
 		// are we saving it?
 		if(!is_null($key))
 		{
@@ -486,7 +427,7 @@ class Page implements \ArrayAccess, \Iterator, \Countable
 	 * @param type $value
 	 */
 	protected function _lazyUrlname($key = null, $value = null)
-	{
+	{throw new Exception('smwiki.storage.deprecetated');
 		if(!is_null($key))
 		{
 			// we must be saving then
