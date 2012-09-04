@@ -71,7 +71,7 @@ class GenericLoader extends AbstractWikiController
 			$factory = new PageFactory($this->_app);
 			$this->_page = $factory->load($page_name, $namespace);
 			
-			$crumbs = $this->_page['crumbs'];foreach($crumbs as $k => $v){throw new \Exception;}
+			$crumbs = $this->_page['crumbs'];
 			$crumbs[] = array(
 					'name' => $page_name, // @todo make this use the real name, not the urlname. Not sure how we'll do this.
 					'href' => array('wiki', $page_name),
