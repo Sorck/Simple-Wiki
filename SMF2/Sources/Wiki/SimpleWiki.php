@@ -106,6 +106,7 @@ function wiki_namespace_view($page_uriname, $page_data)
     {
         redirectexit($scripturl . '?action=wiki;p=Create:WikiSpecial;t=' . rawurlencode($page_uriname));
     }
+    $context['wiki']['page_data'] = $page_data;
 }
 
 /**

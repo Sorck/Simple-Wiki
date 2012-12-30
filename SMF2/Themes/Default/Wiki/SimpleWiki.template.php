@@ -44,10 +44,30 @@ function template_main()
 
 function template_wiki_namespace_view()
 {
-    global $context;
-	if(function_exists('template_wiki_'.$context['wiki_template']))
-		call_user_func('template_wiki_'.$context['wiki_template']);
-	echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
+    global $context, $txt;    
+	$tools = array(
+		'edit' => array('name'=>'wiki_edit', 'show'=>wikiAllowedTo('edit'), 'url'=>'index.php?action=wiki;sa=edit;p={page:string}', 'image' => 'wiki_edit.png'),
+		'history' => array('name'=>'wiki_history', 'show'=>wikiAllowedTo('view_history'), 'url'=>'index.php?action=wiki;sa=history;p={page:string}', 'image' => 'wiki_history.png'),
+		'protect' => array('name'=>'wiki_protect_page', 'show'=>wikiAllowedTo('protect'), 'url'=>'index.php?action=wiki;sa=protect;p={page:string}', 'image' => 'wiki_lock.png'),
+		'create' => array('name'=>'wiki_create_new_page', 'show'=>wikiAllowedTo('create'), 'url'=>'index.php?action=wiki;sa=create', 'image' => 'wiki_create.png'),
+	);
+
+	/*$toolbar = */template_wiki_make_toolbar($tools);
+	#echo $toolbar;
+	if(function_exists('template_wiki_namespace_'.$context['name_space']))
+		call_user_func('template_wiki_namespace_'.$context['name_space']);
+	echo $context['wiki_page_content'];
+}
+
+function template_wiki_make_toolbar($tools)
+{
+    echo '<span class="float_right">';
+	foreach($tools as $act => $tool)
+	{
+		if($tool['show'])	
+			echo '<a href="', str_replace('{page:string}', $_REQUEST['p'], $tool['url']), '">', create_button($tool['image'], $tool['name'], $tool['name']), '</a>';
+	}
+	echo '</span>';
 }
 
 function template_wiki_copyright()
