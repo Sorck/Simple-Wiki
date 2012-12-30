@@ -21,6 +21,7 @@
  * 
  * @todo Move namespaces to their own files.
  * @todo Allow drag and drop extending of SimpleWiki
+ * @todo Canonical links.
 */
 
 if(!defined('SMF'))
@@ -105,6 +106,19 @@ function wiki_namespace_view($page_uriname, $page_data)
     {
         redirectexit($scripturl . '?action=wiki;p=Create:WikiSpecial;t=' . rawurlencode($page_uriname));
     }
+}
+
+/**
+ * Wikipedia redirect namespace
+ * @author James Robson
+ * @param $page_uriname The URIname of the page
+ * @param $page_data The contents of the page in array format or false if the page does not exist.
+ * @todo Make this optional to turn on.
+ * @todo Give a 'You are leaving this website. We are not responsible for external website content' message
+ */
+function wiki_namespace_wikipedia($page_uriname, $page_data)
+{
+    redirectexit('http://en.wikipedia.org/wiki/' . $page_uriname);
 }
 
 // ==== END OF NEW EDITION CODE ====

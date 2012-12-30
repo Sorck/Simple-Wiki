@@ -25,6 +25,32 @@
 
 function template_main()
 {
-    global $context;
+    global $context, $user_info, $txt;
+    echo '<div class="title_bar">
+        	<h3 class="titlebg">
+			<div id="quick_search" class="align_right"><form action="index.php?action=wiki;sa=search" method="post">
+			<input class="input_text" type="text" name="q" value="'.$txt['search'].'" /></form></div>'.$txt['wiki'].'</h3>
+	</div><span class="upperframe"><span></span></span>
+	<div class="roundframe">'.sprintf($txt['wiki_welcome'], ($user_info['name']?$user_info['name']:$txt['guest'])).'
+	</div><span class="lowerframe"><span></span></span>';
+	echo '<br /><div id="left_admsection">';
+	// @todo Wiki Menu
+	echo '</div>';
+	echo '<div class="windowbg2" id="main_admsection"><span class="topslice"><span></span></span><div class="content">';
     call_user_func('template_wiki_' . $context['wiki_theme']);
+    echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
+    template_wiki_copyright();
+}
+
+function template_wiki_namespace_view()
+{
+    global $context;
+	if(function_exists('template_wiki_'.$context['wiki_template']))
+		call_user_func('template_wiki_'.$context['wiki_template']);
+	echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
+}
+
+function template_wiki_copyright()
+{
+	echo '<div class="centertext smalltext"><a href="http://simplewiki.co.uk">SimpleWiki &copy; 2010-2012, James Robson</a></div>';
 }
