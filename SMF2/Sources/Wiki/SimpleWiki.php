@@ -29,14 +29,16 @@ if(!defined('SMF'))
 
 function wiki($call = false)
 {
-	global $sourcedir, $scripturl;
+	global $sourcedir, $scripturl, $context, $txt;
     // Load some important SimpleWiki functions.
     require_once $sourcedir . '/SimpleWiki-Subs.php';
     // They better be allowed to view the Wiki...
 	wikiIsAllowedTo('simplewiki_view');
+    // Setup the link tree
+    $context['linktree'][] = array('name'=>$txt['wiki'], 'url' => $scripturl . '?action=wiki',);
     
     // Come on people... request a page!
-    if(!isset($_REQUEST['p']))
+    if(!isset($_REQUEST['p']) || empty($_REQUEST['p']))
     {
         redirectexit($scripturl . '?action=wiki;p=Main_Page');
     }
@@ -73,15 +75,19 @@ function wiki($call = false)
         if($special)
         {
             // Load the namespace
-            call_user_func('wiki_special_namespace_' . $page_parts[0], array($page_parts[1]));
+            call_user_func('wiki_special_namespace_' . $page_parts[0]);
             $context['wiki_theme'] = 'special_namespace_' . $page_parts[0];
         }
         else
         {
             // Get the page
             $page = GetPage($page_parts[1]);
+            if($page)
+            {
+                $context['linktree'][] = array('name' => $page['realname'], 'url' => wiki_link($page_parts[1]));
+            }
             // And now load the namespace
-            call_user_func('wiki_namespace_' . $page_parts[0], array($page_parts[1], $page));
+            call_user_func('wiki_namespace_' . $page_parts[0], $page_parts[1], $page);
             $context['wiki_theme'] = 'namespace_' . $page_parts[0];
         }
     }
@@ -90,6 +96,7 @@ function wiki($call = false)
         // Well this one patently doesn't exist...
         fatal_error('Unknown SimpleWiki namesapce requested', false);
     }
+    loadTemplate('SimpleWiki');
 }
 
 /**
@@ -109,6 +116,45 @@ function wiki_namespace_view($page_uriname, $page_data)
     $context['wiki']['page_data'] = $page_data;
 }
 
+function wiki_namespace_edit($page_uriname, $page_data)
+{
+    global $scripturl, $context, $modSettings, $sourcedir;
+    isAllowedTo('edit');
+    // If page data doesn't already exist then this is creation...
+    if(!$page_data)
+    {
+        // @todo Should we do the creation anyhow?
+        redirectexit($scripturl . '?action=wiki;p=Create:WikiSpecial;t=' . rawurlencode($page_uriname));
+    }
+    $modSettings['disable_wysiwyg'] = true;//!empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
+    require_once($sourcedir . '/Subs-Editor.php');
+	$editorOptions = array(
+		'id' => 'content',
+		'value' => $page_data['body'],
+		'labels' => array(
+			'post_button' => 'Post',
+		),
+		// add height and width for the editor
+		'height' => '175px',
+		'width' => '100%',
+		// We do XML preview here.
+		'preview_type' => 2,
+	);
+	create_control_richedit($editorOptions);
+}
+
+function wiki_namespace_edit2($page_uriname, $page_data)
+{
+    global $scripturl, $context;
+    isAllowedTo('edit');
+    // @todo check if this page isn't locked
+    // Have we submitted content?
+    if(!isset($_POST['content']))
+    {
+        redirectexit(wiki_link($page_uriname));
+    }
+}
+
 /**
  * Wikipedia redirect namespace
  * @author James Robson
@@ -119,7 +165,7 @@ function wiki_namespace_view($page_uriname, $page_data)
  */
 function wiki_namespace_wikipedia($page_uriname, $page_data)
 {
-    redirectexit('http://en.wikipedia.org/wiki/' . $page_uriname);
+    redirectexit('http://en.wikipedia.org/wiki/' . rawurlencode($page_uriname));
 }
 
 // ==== END OF NEW EDITION CODE ====

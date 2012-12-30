@@ -30,11 +30,14 @@ function GetPage($page_name_uri, $page_revision = null)
     global $smcFunc;
     // Setup our query
     $qry = "SELECT revisions.body, pages.uriname, revisions.id_editor, revisions.name_editor, pages.realname
-            FROM {db_prefix}sw_pages AS pages, {db_prefix}sw_revisions AS revisions
+            FROM {db_prefix}simplewiki_pages AS pages, {db_prefix}simplewiki_revisions AS revisions
             WHERE pages.uriname = {text:page_uriname}";
-    $qry .= is_int($page_revision) ? 'AND revision.id_revision = {int:page_revision}
-                                            AND revision.id_page = pages.id_page' : 'AND revision.id_revision = page.id_last_revision';
-    $qry .= 'LIMIT 0,1';
+    $qry .= is_int($page_revision) ? '
+                                    AND revisions.id_revision = {int:page_revision}
+                                    AND revisions.id_page = pages.id_page' : '
+                                    AND revisions.id_revision = pages.id_latest_revision';
+    $qry .= '
+    LIMIT 0,1';
     
     // Run our query
     $res = $smcFunc['db_query']('', $qry, array(
@@ -66,7 +69,7 @@ function SavePage($page_real_name, $page_content, $opts = array())
 function wikiIsAllowedTo($perm)
 {
     if(allowedTo('simplewiki_admin'))
-		return true;
+    	return true;
 	isAllowedTo('simplewiki_' . $perm);
 }
 
@@ -77,4 +80,24 @@ function wikiAllowedTo($perm)
 	if(allowedTo('simplewiki_' . $perm))
 		return true;
 	return false;
+}
+
+/**
+ * Don't use this function if there's a query string needed.
+ */
+function wiki_link($page_name)
+{
+    global $scripturl, $wiki_scripturl;
+    if(defined('WIKI_PRETTY'))
+    {
+        if(!isset($wiki_scripturl))
+        {
+            $wiki_scripturl = str_replace('index.php', 'wiki', $scripturl);
+        }
+        return $wiki_scripturl . '/' . str_replace('%3A', ':', rawurlencode($page_name));
+    }
+    else
+    {
+        return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name));
+    }
 }

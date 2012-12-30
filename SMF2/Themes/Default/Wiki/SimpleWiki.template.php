@@ -46,17 +46,36 @@ function template_wiki_namespace_view()
 {
     global $context, $txt;    
 	$tools = array(
-		'edit' => array('name'=>'wiki_edit', 'show'=>wikiAllowedTo('edit'), 'url'=>'index.php?action=wiki;sa=edit;p={page:string}', 'image' => 'wiki_edit.png'),
-		'history' => array('name'=>'wiki_history', 'show'=>wikiAllowedTo('view_history'), 'url'=>'index.php?action=wiki;sa=history;p={page:string}', 'image' => 'wiki_history.png'),
-		'protect' => array('name'=>'wiki_protect_page', 'show'=>wikiAllowedTo('protect'), 'url'=>'index.php?action=wiki;sa=protect;p={page:string}', 'image' => 'wiki_lock.png'),
-		'create' => array('name'=>'wiki_create_new_page', 'show'=>wikiAllowedTo('create'), 'url'=>'index.php?action=wiki;sa=create', 'image' => 'wiki_create.png'),
+		'edit' => array('name'=>'wiki_edit', 'show'=>wikiAllowedTo('edit'), 'url'=>wiki_link('edit:page_string'), 'image' => 'wiki_edit.png'),
+		'history' => array('name'=>'wiki_history', 'show'=>wikiAllowedTo('view_history'), 'url'=>wiki_link('history:page_string'), 'image' => 'wiki_history.png'),
+		'protect' => array('name'=>'wiki_protect_page', 'show'=>wikiAllowedTo('protect'), 'url'=>wiki_link('protect:page_string'), 'image' => 'wiki_lock.png'),
+		'create' => array('name'=>'wiki_create_new_page', 'show'=>wikiAllowedTo('create'), 'url'=>wiki_link('create:WikiSpecial'), 'image' => 'wiki_create.png'),
 	);
 
 	/*$toolbar = */template_wiki_make_toolbar($tools);
 	#echo $toolbar;
-	if(function_exists('template_wiki_namespace_'.$context['name_space']))
-		call_user_func('template_wiki_namespace_'.$context['name_space']);
+	//if(function_exists('template_wiki_namespace_'.$context['name_space']))
+	//	call_user_func('template_wiki_namespace_'.$context['name_space']);
 	echo $context['wiki']['page_data']['body'];
+}
+
+// @todo clean
+function template_wiki_namespace_edit()
+{
+    global $txt, $scripturl;
+	template_wiki_edit_box($scripturl.'?action=wiki;=edit2:'.rawurlencode($_REQUEST['p']));
+	echo '<form method="post" action="index.php?action=wiki;p='.rawurlencode($_REQUEST['p']).'"><input type="submit" value="'.$txt['wiki_cancel_editting'].'" /></form>';
+}
+
+// @todo clean
+function template_wiki_edit_box($action, $titlebox = false)
+{
+	global $txt;
+	echo'<h2>'.$txt['title'].':</h2> <form action="'.$action.'" method="post">';
+	if($titlebox)echo '<input type="text" value=\''.htmlspecialchars($_REQUEST['p']).'\' name="p" />';
+	echo '<div id="bbc"></div><div id="smileys"></div>';
+	template_control_richedit('wiki_content', 'smileys', 'bbc');
+	echo '<input type="submit" value="'.$txt['wiki_save_button'].'" /></form>';
 }
 
 function template_wiki_make_toolbar($tools)
@@ -65,7 +84,7 @@ function template_wiki_make_toolbar($tools)
 	foreach($tools as $act => $tool)
 	{
 		if($tool['show'])	
-			echo '<a href="', str_replace('{page:string}', $_REQUEST['p'], $tool['url']), '">', create_button($tool['image'], $tool['name'], $tool['name']), '</a>';
+			echo '<a href="', str_replace('page_string', $_REQUEST['p'], $tool['url']), '">', create_button($tool['image'], $tool['name'], $tool['name']), '</a>';
 	}
 	echo '</span>';
 }
