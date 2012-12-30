@@ -10,7 +10,7 @@
 	<install for="2.0-2.0.99">
 		<readme lang="english" parsebbc="true" type="file">readme.english.txt</readme>
 		<modification format="xml" type="file">install.xml</modification>
-		<database>db_rc3_install.php</database>
+		<database>db_smf2_install.php</database>
 		<!-- source files -->
 		<require-file name="Sources/Wiki/SimpleWiki.php" destination="$sourcedir" />
         <require-file name="Sources/Wiki/SimpleWiki-Subs.php" destination="$sourcedir" />

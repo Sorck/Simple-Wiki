@@ -29,11 +29,11 @@ function GetPage($page_name_uri, $page_revision = null)
 {
     global $smcFunc;
     // Setup our query
-    $qry = "SELECT revisions.body, pages.uriname, revisions.editor_id, revisions.editor_name
+    $qry = "SELECT revisions.body, pages.uriname, revisions.id_editor, revisions.name_editor, pages.realname
             FROM {db_prefix}sw_pages AS pages, {db_prefix}sw_revisions AS revisions
             WHERE pages.uriname = {text:page_uriname}";
     $qry .= is_int($page_revision) ? 'AND revision.id_revision = {int:page_revision}
-                                            AND revision.id_revision = pages.id_revision' : 'AND revision.id_revision = page.id_last_revision';
+                                            AND revision.id_page = pages.id_page' : 'AND revision.id_revision = page.id_last_revision';
     $qry .= 'LIMIT 0,1';
     
     // Run our query
