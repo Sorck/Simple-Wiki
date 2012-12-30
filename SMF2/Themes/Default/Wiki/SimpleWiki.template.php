@@ -56,7 +56,7 @@ function template_wiki_namespace_view()
 	#echo $toolbar;
 	if(function_exists('template_wiki_namespace_'.$context['name_space']))
 		call_user_func('template_wiki_namespace_'.$context['name_space']);
-	echo $context['wiki_page_content'];
+	echo $context['wiki']['page_data']['body'];
 }
 
 function template_wiki_make_toolbar($tools)

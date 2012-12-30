@@ -31,7 +31,7 @@ function GetPage($page_name_uri, $page_revision = null)
 {
     global $smcFunc;
     // Setup our query
-    $qry = "SELECT revisions.content, pages.uriname, revisions.editor_id, revisions.editor_name
+    $qry = "SELECT revisions.body, pages.uriname, revisions.editor_id, revisions.editor_name
             FROM {db_prefix}sw_pages AS pages, {db_prefix}sw_revisions AS revisions
             WHERE pages.uriname = {text:page_uriname}";
     $qry .= is_int($page_revision) ? 'AND revision.id_revision = {int:page_revision}
