@@ -31,7 +31,7 @@ function wiki($call = false)
 {
 	global $sourcedir, $scripturl;
     // Load some important SimpleWiki functions.
-    require_once $sourcedir . '/Wiki/SimpleWiki-Subs.php';
+    require_once $sourcedir . '/SimpleWiki-Subs.php';
     // They better be allowed to view the Wiki...
 	wikiIsAllowedTo('simplewiki_view');
     
@@ -231,7 +231,7 @@ function wiki_main()
 		return $sactions[$_REQUEST['sa']];
 	elseif(file_exists($sourcedir.'/wiki/'.$_REQUEST['sa'].'.function.php'))
 	{
-		require_once($sourcedir.'/wiki/'.$_REQUEST['sa'].'.function.php');
+		require_once($sourcedir.'/'.$_REQUEST['sa'].'.function.php');
 		// fairly complex...
 		return 'wiki_'.(function_exists('wiki_'.$_REQUEST['sa']) ? $_REQUEST['sa']:'page');
 	}
