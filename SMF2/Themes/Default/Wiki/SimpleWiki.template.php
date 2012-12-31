@@ -1,6 +1,6 @@
 <?php
 /**
- * @file SimpleWiki-Subs.php
+ * @file SimpleWiki.template.php
  * @author James Robson
  * 
  * Copyright (c) 2012, James Robson
@@ -27,7 +27,7 @@ function template_main()
 {
     global $context, $user_info, $txt;
     echo '<div class="title_bar">
-        	<h3 class="titlebg">
+            <h3 class="titlebg">
 			<div id="quick_search" class="align_right"><form action="index.php?action=wiki;sa=search" method="post">
 			<input class="input_text" type="text" name="q" value="'.$txt['search'].'" /></form></div>'.$txt['wiki'].'</h3>
 	</div><span class="upperframe"><span></span></span>
@@ -62,20 +62,25 @@ function template_wiki_namespace_view()
 // @todo clean
 function template_wiki_namespace_edit()
 {
-    global $txt, $scripturl;
-	template_wiki_edit_box($scripturl.'?action=wiki;=edit2:'.rawurlencode($_REQUEST['p']));
-	echo '<form method="post" action="index.php?action=wiki;p='.rawurlencode($_REQUEST['p']).'"><input type="submit" value="'.$txt['wiki_cancel_editting'].'" /></form>';
+    global $txt, $scripturl, $context;
+	template_wiki_edit_box(wiki_link('edit:' . $context['wiki']['page_data']['uriname']));
+	echo '<form method="post" action="', wiki_link($context['wiki']['page_data']['uriname']), '"><input type="submit" value="', $txt['wiki_cancel_editting'], '" /></form>';
 }
 
 // @todo clean
 function template_wiki_edit_box($action, $titlebox = false)
 {
-	global $txt;
-	echo'<h2>'.$txt['title'].':</h2> <form action="'.$action.'" method="post">';
-	if($titlebox)echo '<input type="text" value=\''.htmlspecialchars($_REQUEST['p']).'\' name="p" />';
+	global $txt, $context;
+	echo '<form action="', $action, '" method="post">';
+	// @todo Use proper page name... (i.e. realname)
+	if($titlebox)
+		echo '<h2>', $txt['title'], ':</h2><input type="text" value=\'', htmlspecialchars($context['wiki']['page_data']['realname']), '\' name="p" />';
+	else
+		echo '<h2>', $txt['title'], ':</h2>', htmlspecialchars($context['wiki']['page_data']['realname']);
 	echo '<div id="bbc"></div><div id="smileys"></div>';
-	template_control_richedit('wiki_content', 'smileys', 'bbc');
-	echo '<input type="submit" value="'.$txt['wiki_save_button'].'" /></form>';
+	// @todo Session checking
+	template_control_richedit('content', 'smileys', 'bbc');
+	echo '<input type="submit" value="', $txt['wiki_save_button'], '" /></form>';
 }
 
 function template_wiki_make_toolbar($tools)

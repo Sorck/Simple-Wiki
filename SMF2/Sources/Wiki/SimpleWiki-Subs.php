@@ -60,9 +60,73 @@ function GetPage($page_name_uri, $page_revision = null)
     }
 }
 
-function SavePage($page_real_name, $page_content, $opts = array())
+function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 {
-    throw new Exception('Feature not implemented - SavePage() in SimpleWiki-Subs.php');
+    global $smcFunc, $user_info;
+    //throw new Exception('Feature not implemented - SavePage() in SimpleWiki-Subs.php');
+	// Get page data from the pages table.
+	$res = $smcFunc['db_query']('', 'SELECT pages.id_page
+		FROM {db_prefix}simplewiki_pages AS pages
+		WHERE realname = {string:realname}',
+		array(
+			'realname' => $page_real_name,
+		));
+	$row = $smcFunc['db_fetch_assoc']($res);
+	// Free up a tiny bit of memory...
+	$smcFunc['db_free_result']($res);
+	// So, do we exist?
+	if(!$row)
+	{
+		// We'll need to create an entry in the pages table.
+		$smcFunc['db_insert']('replace',
+			'{db_prefix}simplewiki_pages',
+			array(
+				'uriname' => 'string',
+				'realname' => 'string',
+			),
+			array(
+				wiki_to_uriname($real_name),
+				$real_name,
+			),
+			array(
+				'id_page',
+			));
+		// Get the page ID
+		$row['id_page'] = $smcFunc['db_insert_id']('{db_prefix}simplewiki_pages', 'id_page');
+	}
+	// Add a new row to the revisions table.
+	$smcFunc['db_insert']('replace',
+		'{db_prefix}simplewiki_revisions',
+		array(
+			'id_editor' => 'int',
+			'name_editor' => 'int',
+			'body' => 'string',
+			'time' => 'int',
+			'id_page' => 'int',
+		),
+		array(
+			$user_info['id'],
+			$user_info['id'] === 0 ? '127.0.0.1' : $user_info['name'],
+			$page_content,
+			time(),
+			$id_page,
+		),
+		array(
+			'id_revision',
+		));
+	// Set the last revision now...
+	$smcFunc['db_query']('', 'UPDATE {db_prefix}simplewiki_pages
+		SET id_latest_revision = {int:revision}
+		WHERE id_page = {int:page}', array(
+			'page' => $row['id_page'],
+			'revision' => $smcFunc['db_insert_id']('{db_prefix}simplewiki_revisions', 'id_revision'),
+		));
+}
+
+function wiki_to_uriname($realname)
+{
+	// Replace all whitepsace with underscores.
+	return preg_replace('[s]+', '_', $realname);
 }
 
 // Permission functions

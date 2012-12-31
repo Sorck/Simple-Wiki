@@ -29,7 +29,7 @@ if(!defined('SMF'))
 
 function wiki($call = false)
 {
-	global $sourcedir, $scripturl, $context, $txt;
+    global $sourcedir, $scripturl, $context, $txt;
     // Load some important SimpleWiki functions.
     require_once $sourcedir . '/SimpleWiki-Subs.php';
     // They better be allowed to view the Wiki...
@@ -89,6 +89,7 @@ function wiki($call = false)
             // And now load the namespace
             call_user_func('wiki_namespace_' . $page_parts[0], $page_parts[1], $page);
             $context['wiki_theme'] = 'namespace_' . $page_parts[0];
+			$context['wiki']['page_data'] = $page;
         }
     }
     else
@@ -113,7 +114,6 @@ function wiki_namespace_view($page_uriname, $page_data)
     {
         redirectexit($scripturl . '?action=wiki;p=Create:WikiSpecial;t=' . rawurlencode($page_uriname));
     }
-    $context['wiki']['page_data'] = $page_data;
 }
 
 function wiki_namespace_edit($page_uriname, $page_data)
@@ -126,6 +126,23 @@ function wiki_namespace_edit($page_uriname, $page_data)
         // @todo Should we do the creation anyhow?
         redirectexit($scripturl . '?action=wiki;p=Create:WikiSpecial;t=' . rawurlencode($page_uriname));
     }
+	// @todo Check page's protection level
+	// So we're saving then?
+	if(isset($_POST['content']))
+	{
+		// Setting an empty page? That's not how you delete...
+		if(empty($_POST['content']))
+		{
+			redirectexit(wiki_link('Delete:' . $page_uriname));
+		}
+		// Not changing anything? We're not going to waste insert queries on you!
+		if($_POST['content'] === $page_data['body'])
+		{
+			redirectexit(wiki_link($page_uriname));
+		}
+		// OK then, lets save
+		SavePage($page_data['realname'], $_POST['content']);
+	}
     $modSettings['disable_wysiwyg'] = true;//!empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
     require_once($sourcedir . '/Subs-Editor.php');
 	$editorOptions = array(
@@ -141,18 +158,6 @@ function wiki_namespace_edit($page_uriname, $page_data)
 		'preview_type' => 2,
 	);
 	create_control_richedit($editorOptions);
-}
-
-function wiki_namespace_edit2($page_uriname, $page_data)
-{
-    global $scripturl, $context;
-    isAllowedTo('edit');
-    // @todo check if this page isn't locked
-    // Have we submitted content?
-    if(!isset($_POST['content']))
-    {
-        redirectexit(wiki_link($page_uriname));
-    }
 }
 
 /**
