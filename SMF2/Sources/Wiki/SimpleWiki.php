@@ -3,7 +3,7 @@
  * @file SimpleWiki-Subs.php
  * @author James Robson
  * 
- * Copyright (c) 2012, James Robson
+ * Copyright (c) 2013, James Robson
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -35,8 +35,13 @@ function wiki($call = false)
     // They better be allowed to view the Wiki...
 	wikiIsAllowedTo('simplewiki_view');
     // Setup the link tree
-    $context['linktree'][] = array('name'=>$txt['wiki'], 'url' => $scripturl . '?action=wiki',);
-    
+    $context['linktree'][] = array('name'=>$txt['wiki'], 'url' => $scripturl . '?action=wiki');
+	
+	// Make sure we have the template loaded up
+	loadTemplate('SimpleWiki');
+    // Now setup our template layers
+	$context['template_layers'][] = 'wiki';
+	
     // Come on people... request a page!
     if(!isset($_REQUEST['p']) || empty($_REQUEST['p']))
     {
@@ -76,7 +81,8 @@ function wiki($call = false)
         {
             // Load the namespace
             call_user_func('wiki_special_namespace_' . $page_parts[0]);
-            $context['wiki_theme'] = 'special_namespace_' . $page_parts[0];
+			// Load the right sub template.
+			$context['sub_template'] = 'wiki_special_namespace_' . $page_parts[0];
         }
         else
         {
@@ -88,7 +94,8 @@ function wiki($call = false)
             }
             // And now load the namespace
             call_user_func('wiki_namespace_' . $page_parts[0], $page_parts[1], $page);
-            $context['wiki_theme'] = 'namespace_' . $page_parts[0];
+			// Make sure we're loading the correct sub template.
+			$context['sub_template'] = 'wiki_namespace_' . $page_parts[0];
 			$context['wiki']['page_data'] = $page;
         }
     }
@@ -97,7 +104,6 @@ function wiki($call = false)
         // Well this one patently doesn't exist...
         fatal_error('Unknown SimpleWiki namesapce requested', false);
     }
-    loadTemplate('SimpleWiki');
 }
 
 /**

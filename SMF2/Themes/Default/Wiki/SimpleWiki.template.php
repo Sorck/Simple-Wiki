@@ -1,9 +1,9 @@
 <?php
 /**
- * @file SimpleWiki.template.php
+ * @file SimpleWiki-Subs.php
  * @author James Robson
  * 
- * Copyright (c) 2012, James Robson
+ * Copyright (c) 2013, James Robson
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,28 +23,36 @@
  * @todo Allow drag and drop extending of SimpleWiki
 */
 
-function template_main()
+/*function template_main()
 {
-    global $context, $user_info, $txt;
+    //call_user_func('template_wiki_' . $context['wiki_theme']);
+}*/
+
+function template_wiki_above()
+{
+    global $user_info, $txt;
     echo '<div class="title_bar">
-            <h3 class="titlebg">
+        	<h3 class="titlebg">
 			<div id="quick_search" class="align_right"><form action="index.php?action=wiki;sa=search" method="post">
-			<input class="input_text" type="text" name="q" value="'.$txt['search'].'" /></form></div>'.$txt['wiki'].'</h3>
+			<input class="input_text" type="text" name="q" value="', $txt['search'], '" /></form></div>'.$txt['wiki'], '</h3>
 	</div><span class="upperframe"><span></span></span>
-	<div class="roundframe">'.sprintf($txt['wiki_welcome'], ($user_info['name']?$user_info['name']:$txt['guest'])).'
+	<div class="roundframe">', sprintf($txt['wiki_welcome'], ($user_info['name'] ? $user_info['name'] : $txt['guest'])), '
 	</div><span class="lowerframe"><span></span></span>';
 	echo '<br /><div id="left_admsection">';
 	// @todo Wiki Menu
 	echo '</div>';
 	echo '<div class="windowbg2" id="main_admsection"><span class="topslice"><span></span></span><div class="content">';
-    call_user_func('template_wiki_' . $context['wiki_theme']);
-    echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
+}
+
+function template_wiki_below()
+{
+	echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
     template_wiki_copyright();
 }
 
 function template_wiki_namespace_view()
 {
-    global $context, $txt;    
+    global $context, $txt;
 	$tools = array(
 		'edit' => array('name'=>'wiki_edit', 'show'=>wikiAllowedTo('edit'), 'url'=>wiki_link('edit:page_string'), 'image' => 'wiki_edit.png'),
 		'history' => array('name'=>'wiki_history', 'show'=>wikiAllowedTo('view_history'), 'url'=>wiki_link('history:page_string'), 'image' => 'wiki_history.png'),
@@ -52,11 +60,8 @@ function template_wiki_namespace_view()
 		'create' => array('name'=>'wiki_create_new_page', 'show'=>wikiAllowedTo('create'), 'url'=>wiki_link('create:WikiSpecial'), 'image' => 'wiki_create.png'),
 	);
 
-	/*$toolbar = */template_wiki_make_toolbar($tools);
-	#echo $toolbar;
-	//if(function_exists('template_wiki_namespace_'.$context['name_space']))
-	//	call_user_func('template_wiki_namespace_'.$context['name_space']);
-	echo $context['wiki']['page_data']['body'];
+	template_wiki_make_toolbar($tools);
+	echo parse_bbc($context['wiki']['page_data']['body']);
 }
 
 // @todo clean
@@ -72,7 +77,6 @@ function template_wiki_edit_box($action, $titlebox = false)
 {
 	global $txt, $context;
 	echo '<form action="', $action, '" method="post">';
-	// @todo Use proper page name... (i.e. realname)
 	if($titlebox)
 		echo '<h2>', $txt['title'], ':</h2><input type="text" value=\'', htmlspecialchars($context['wiki']['page_data']['realname']), '\' name="p" />';
 	else
@@ -96,5 +100,5 @@ function template_wiki_make_toolbar($tools)
 
 function template_wiki_copyright()
 {
-	echo '<div class="centertext smalltext"><a href="http://simplewiki.co.uk">SimpleWiki &copy; 2010-2012, James Robson</a></div>';
+	echo '<div class="centertext smalltext"><a href="http://simplewiki.co.uk">SimpleWiki &copy; 2010-2013, James Robson</a></div>';
 }
