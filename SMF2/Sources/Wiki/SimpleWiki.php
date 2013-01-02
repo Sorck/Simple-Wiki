@@ -33,7 +33,7 @@ function wiki($call = false)
     // Load some important SimpleWiki functions.
     require_once $sourcedir . '/SimpleWiki-Subs.php';
     // They better be allowed to view the Wiki...
-	wikiIsAllowedTo('simplewiki_view');
+    wikiIsAllowedTo('simplewiki_view');
     // Setup the link tree
     $context['linktree'][] = array('name'=>$txt['wiki'], 'url' => $scripturl . '?action=wiki');
 	
@@ -177,6 +177,46 @@ function wiki_namespace_edit($page_uriname, $page_data)
 function wiki_namespace_wikipedia($page_uriname, $page_data)
 {
     redirectexit('http://en.wikipedia.org/wiki/' . rawurlencode($page_uriname));
+}
+
+function wiki_special_namespace_create()
+{
+	global $scripturl, $context, $modSettings, $sourcedir;
+	isAllowedTo('edit');
+	// @todo Check if page already exists.
+	// @todo Check page's protection level
+	// So we're saving then?
+	if(isset($_POST['content']) && isset($_POST['t']))
+	{
+		// Setting an empty page? That's pointless!
+		if(empty($_POST['content']))
+		{
+			fatal_error('Cannot create an empty page.', false);
+		}
+		if(empty($_POST['t']))
+		{
+			fatal_error('Pages must have a title.', false);
+		}
+		// OK then, lets save
+		SavePage($_POST['t'], $_POST['content']);
+		// Redirect...
+		redirectexit(wiki_link(wiki_to_uriname($_POST['t'])));
+	}
+    $modSettings['disable_wysiwyg'] = true;//!empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
+    require_once($sourcedir . '/Subs-Editor.php');
+	$editorOptions = array(
+		'id' => 'content',
+		'value' => '',
+		'labels' => array(
+			'post_button' => 'Post',
+		),
+		// add height and width for the editor
+		'height' => '175px',
+		'width' => '100%',
+		// We do XML preview here.
+		'preview_type' => 2,
+	);
+	create_control_richedit($editorOptions);
 }
 
 // ==== END OF NEW EDITION CODE ====

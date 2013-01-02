@@ -28,3 +28,119 @@ add_integration_function('integrate_actions', 'wiki_integrate_actions', true);
 add_integration_function('integrate_menu_buttons', 'wiki_integrate_menu_buttons', true);
 // And some permissions...
 add_integration_function('integrate_load_permissions', 'wiki_integrate_load_permissions', true);
+
+
+// Now setup the database tables
+db_extend('packages');
+
+$tables[] = array(
+    'table_name' => '{db_prefix}simplewiki_pages',
+	'columns' => array(
+		array(
+			'name' => 'id_page',
+			'auto' => true,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 10,
+			'null' => false,
+		),
+		array(
+			'name' => 'id_latest_revision',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 11,
+			'null' => false,
+		),
+		array(
+			'name' => 'uriname',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'varchar',
+			'size' => 128,
+			'null' => false,
+		),
+		array(
+			'name' => 'realname',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'varchar',
+			'size' => 128,
+			'null' => false,
+		),
+	),
+	'indexes' => array(
+		array(
+			'columns' => array('id_page'),
+			'type' => 'primary',
+		),
+	),
+	'if_exists' => 'update',
+	'error' => 'fatal',
+	'parameters' => array(),
+);
+
+$tables[] = array(
+	'table_name' => '{db_prefix}simplewiki_revisions',
+	'columns' => array(
+		array(
+			'name' => 'id_revision',
+			'auto' => true,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 11,
+			'null' => false,
+		),
+		array(
+			'name' => 'id_member',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 8,
+			'null' => false,
+		),
+		array(
+			'name' => 'time',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 10,
+			'null' => false,
+		),
+		array(
+			'name' => 'name_editor',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'varchar',
+			'size' => 80,
+			'null' => false,
+		),
+		array(
+			'name' => 'id_page',
+			'auto' => false,
+			'default' => 0,
+			'type' => 'int',
+			'size' => 10,
+			'null' => false,
+		),
+		array(
+			'name' => 'body',
+			'auto' => false,
+			//'default' => 0,
+			'type' => 'text',
+			'null' => false,
+		),
+	),
+	'indexes' => array(
+		array(
+			'columns' => array('id_revision'),
+			'type' => 'primary',
+		),
+	),
+	'if_exists' => 'update',
+	'error' => 'fatal',
+	'parameters' => array(),
+);
+
+foreach ($tables as $row => $table)
+	$smcFunc['db_create_table']($table['table_name'], $table['columns'], $table['indexes'], $table['parameters'], $table['if_exists'], $table['error']);

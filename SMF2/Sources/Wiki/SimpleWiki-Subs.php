@@ -29,7 +29,7 @@ function GetPage($page_name_uri, $page_revision = null)
 {
     global $smcFunc;
     // Setup our query
-    $qry = "SELECT revisions.body, pages.uriname, revisions.id_editor, revisions.name_editor, pages.realname
+    $qry = "SELECT revisions.body, pages.uriname, revisions.id_member, revisions.name_editor, pages.realname
             FROM {db_prefix}simplewiki_pages AS pages, {db_prefix}simplewiki_revisions AS revisions
             WHERE pages.uriname = {text:page_uriname}";
     $qry .= is_int($page_revision) ? '
@@ -64,9 +64,9 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 {
     global $smcFunc, $user_info;
     //throw new Exception('Feature not implemented - SavePage() in SimpleWiki-Subs.php');
-	// Get page data from the pages table.
-	$res = $smcFunc['db_query']('', 'SELECT pages.id_page
-		FROM {db_prefix}simplewiki_pages AS pages
+    // Get page data from the pages table.
+    $res = $smcFunc['db_query']('', 'SELECT pages.id_page
+    	FROM {db_prefix}simplewiki_pages AS pages
 		WHERE realname = {string:realname}',
 		array(
 			'realname' => $page_real_name,
@@ -85,8 +85,8 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 				'realname' => 'string',
 			),
 			array(
-				wiki_to_uriname($real_name),
-				$real_name,
+				wiki_to_uriname($page_real_name),
+				$page_real_name,
 			),
 			array(
 				'id_page',
@@ -98,8 +98,8 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 	$smcFunc['db_insert']('replace',
 		'{db_prefix}simplewiki_revisions',
 		array(
-			'id_editor' => 'int',
-			'name_editor' => 'int',
+			'id_member' => 'int',
+			'name_editor' => 'text',
 			'body' => 'string',
 			'time' => 'int',
 			'id_page' => 'int',
@@ -109,7 +109,7 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 			$user_info['id'] === 0 ? '127.0.0.1' : $user_info['name'],
 			$page_content,
 			time(),
-			$id_page,
+			$row['id_page'],
 		),
 		array(
 			'id_revision',
@@ -126,7 +126,7 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
 function wiki_to_uriname($realname)
 {
 	// Replace all whitepsace with underscores.
-	return preg_replace('[s]+', '_', $realname);
+	return preg_replace('/\s+/', '_', $realname);
 }
 
 // Permission functions
@@ -174,6 +174,7 @@ function wiki_integrate_actions(&$actionArray)
 
 function wiki_integrate_menu_buttons(&$menu_buttons)
 {
+	global $txt, $scripturl;
 	$menu_buttons['wiki'] = array(
 		'title' => $txt['wiki'],
 		'href' => $scripturl.'?action=wiki',
