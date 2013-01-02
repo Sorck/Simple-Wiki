@@ -3,7 +3,7 @@
  * @file SimpleWiki-Subs.php
  * @author James Robson
  * 
- * Copyright (c) 2012, James Robson
+ * Copyright (c) 2013, James Robson
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -164,4 +164,33 @@ function wiki_link($page_name)
     {
         return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name));
     }
+}
+
+// === BEGIN INTEGRATION FUNCTIONS ===
+function wiki_integrate_actions(&$actionArray)
+{
+	$actionArray['wiki'] = array('SimpleWiki.php', 'wiki');
+}
+
+function wiki_integrate_menu_buttons(&$menu_buttons)
+{
+	$menu_buttons['wiki'] = array(
+		'title' => $txt['wiki'],
+		'href' => $scripturl.'?action=wiki',
+		'show' => allowedTo('wiki_view'),
+		'sub_buttons' => array(),
+	);
+}
+
+function wiki_integrate_load_permissions($permissionGroups, &$permissionList, $leftPermissionGroups, $hiddenPermissions, $relabelPermissions)
+{
+	$permissionList['membergroup'] += array(
+		'wiki_edit' => array(false, 'wiki', 'wiki'),
+		'wiki_admin' => array(false, 'wiki', 'wiki'),
+		'wiki_search' => array(false, 'wiki', 'wiki'),
+		'wiki_protect' => array(false, 'wiki', 'wiki'),
+		'wiki_view_history' => array(false, 'wiki', 'wiki'),
+		'wiki_create' => array(false, 'wiki', 'wiki'),
+		'wiki_delete' => array(false, 'wiki', 'wiki'),
+	);
 }

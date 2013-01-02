@@ -4,38 +4,6 @@
     <id>Sorck:SimpleWiki</id>
 	<version>0.1.0a</version>
 
-	<file name="$sourcedir/ManagePermissions.php">
-		<operation>
-			<search position="before"><![CDATA[			'view_stats' => array(false, 'general', 'view_basic_info'),]]></search>
-			<add><![CDATA[			'wiki_view' => array(false, 'wiki', 'wiki'),
-			'wiki_edit' => array(false, 'wiki', 'wiki'),
-			'wiki_admin' => array(false, 'wiki', 'wiki'),
-			'wiki_search' => array(false, 'wiki', 'wiki'),
-			'wiki_protect' => array(false, 'wiki', 'wiki'),
-			'wiki_view_history' => array(false, 'wiki', 'wiki'),
-			'wiki_create' => array(false, 'wiki', 'wiki'),
-			'wiki_delete' => array(false, 'wiki', 'wiki'),]]></add>
-		</operation>
-	</file>
-	<file name="$boarddir/index.php">
-		<operation>
-			<search position="after"><![CDATA[		'xmlhttp' => array('Xml.php', 'XMLhttpMain'),]]></search>
-			<add><![CDATA[		'wiki' => array('SimpleWiki.php', 'wiki'),]]></add>
-		</operation>
-	</file>
-	<file name="$sourcedir/Subs.php">
-		<operation>
-			<search position="replace"><![CDATA[			'help' => array(]]></search>
-			<add><![CDATA[			'wiki' => array(
-				'title' => $txt['wiki'],
-				'href' => $scripturl.'?action=wiki',
-				'show' => allowedTo('wiki_view'),
-				'sub_buttons' => array(
-				),
-			),
-			'help' => array(]]></add>
-		</operation>
-	</file>
 	<file name="$languagedir/Modifications.english.php">
 	<operation>
 		<search position="end" />

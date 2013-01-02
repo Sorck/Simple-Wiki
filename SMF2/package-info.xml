@@ -10,7 +10,7 @@
 	<install for="2.0-2.0.99">
 		<readme lang="english" parsebbc="true" type="file">readme.english.txt</readme>
 		<modification format="xml" type="file">install.xml</modification>
-		<!--<database>db_smf2_install.php</database>-->
+		<database>install.php</database>
 		<!-- source files -->
 		<require-file name="Sources/Wiki/SimpleWiki.php" destination="$sourcedir" />
         <require-file name="Sources/Wiki/SimpleWiki-Subs.php" destination="$sourcedir" />
@@ -25,6 +25,7 @@
 	</install>
 	<uninstall for="2.0-2.0.99">
 		<modification format="xml" type="file" reverse="true">install.xml</modification>
+        <database>uninstall.php</database>
 		<!-- source files -->
 		<remove-file name="$sourcedir/SimpleWiki.php" />
         <remove-file name="$sourcedir/SimpleWiki-Subs.php" />
