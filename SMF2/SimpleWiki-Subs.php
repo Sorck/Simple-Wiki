@@ -158,11 +158,11 @@ function wiki_link($page_name, $query_string = '')
         {
             $wiki_scripturl = str_replace('index.php', 'wiki', $scripturl);
         }
-        return $wiki_scripturl . '/' . str_replace('%3A', ':', rawurlencode($page_name));
+        return $wiki_scripturl . '/' . str_replace('%3A', ':', rawurlencode($page_name)) . '?' . (empty($query_string) ? '' : ';' . $query_string);
     }
     else
     {
-        return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name)) . (isset($query_string) ? ';' . $query_string : '');
+        return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name)) . (empty($query_string) ? '' : ';' . $query_string);
     }
 }
 
