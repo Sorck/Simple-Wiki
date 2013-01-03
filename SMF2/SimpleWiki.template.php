@@ -36,16 +36,18 @@ function template_wiki_above()
 	echo '<br /><div id="left_admsection">';
 	// @todo Wiki Menu
 	echo '</div>';
-	echo '<div class="windowbg2" id="main_admsection"><span class="topslice"><span></span></span><div class="content">';
+	//echo '<div class="windowbg2" id="main_admsection"><span class="topslice"><span></span></span>';
+	echo '<div class="content">';
 }
 
 function template_wiki_below()
 {
-	echo '</div><span class="botslice clear"><span></span></span></div><br class="clear" />';
+	//echo '</div><span class="botslice clear"><span></span></span>';
+	echo '</div><br class="clear" />';
     template_wiki_copyright();
 }
 
-function template_wiki_namespace_view()
+function template_wiki_ns_above()
 {
     global $context, $txt;
 	$tools = array(
@@ -56,6 +58,19 @@ function template_wiki_namespace_view()
 	);
 
 	template_wiki_make_toolbar($tools);
+	
+	echo '<br class="clear" />';
+}
+
+function template_wiki_ns_below()
+{
+	// nothin' to see here...
+}
+
+function template_wiki_namespace_view()
+{
+    global $context;
+	// Display our content.
 	echo parse_bbc($context['wiki']['page_data']['body']);
 }
 
@@ -88,6 +103,30 @@ function template_wiki_special_namespace_create()
 	template_wiki_edit_box(wiki_link('create:WikiSpecial'), true);
 }
 
+// @todo constructPageIndex
+function template_wiki_special_namespace_recent()
+{
+    global $txt, $scripturl, $context;
+	echo constructPageIndex(wiki_link('Recent:WikiSpecial'), $_REQUEST['start'], $context['wiki_total_revisions'], 20);
+	echo '
+	<div class="tborder topic_table">
+		<table class="table_grid" cellspacing="0" width="100%">
+			<thead>
+				<tr class="catbg"><th scope="col" class="first_th">Page</th><th scope="col" class="last_th">Time</th></tr>
+			</thead>
+			<tbody>';
+	foreach($context['wiki_recent'] as $recent)
+	{
+		echo '
+				<tr><td class="windowbg">'.htmlspecialchars($recent['realname']).'</td><td class="windowbg2">'.timeformat($recent['time']).'</td></tr>';
+	}
+	
+	echo '
+			</tbody>
+		</table>
+	</div>';
+}
+
 function template_wiki_make_toolbar($tools)
 {
     echo '<span class="float_right">';
@@ -101,5 +140,5 @@ function template_wiki_make_toolbar($tools)
 
 function template_wiki_copyright()
 {
-	echo '<div class="centertext smalltext"><a href="http://simplewiki.co.uk">SimpleWiki &copy; 2010-2013, James Robson</a></div>';
+	echo '<div class="centertext smalltext"><a href="http://sorck.net/projects/simplewiki">SimpleWiki &copy; 2010-2013, James Robson</a></div>';
 }

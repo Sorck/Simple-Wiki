@@ -66,7 +66,7 @@ function SavePage($page_real_name, $page_content, $new = false, $opts = array())
     //throw new Exception('Feature not implemented - SavePage() in SimpleWiki-Subs.php');
     // Get page data from the pages table.
     $res = $smcFunc['db_query']('', 'SELECT pages.id_page
-    	FROM {db_prefix}simplewiki_pages AS pages
+        FROM {db_prefix}simplewiki_pages AS pages
 		WHERE realname = {string:realname}',
 		array(
 			'realname' => $page_real_name,
@@ -149,7 +149,7 @@ function wikiAllowedTo($perm)
 /**
  * Don't use this function if there's a query string needed.
  */
-function wiki_link($page_name)
+function wiki_link($page_name, $query_string = '')
 {
     global $scripturl, $wiki_scripturl;
     if(defined('WIKI_PRETTY'))
@@ -162,7 +162,7 @@ function wiki_link($page_name)
     }
     else
     {
-        return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name));
+        return $scripturl . '?action=wiki;p=' . str_replace('%3A', ':', rawurlencode($page_name)) . (isset($query_string) ? ';' . $query_string : '');
     }
 }
 

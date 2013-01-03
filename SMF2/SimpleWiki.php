@@ -36,7 +36,7 @@ function wiki($call = false)
     wikiIsAllowedTo('simplewiki_view');
     // Setup the link tree
     $context['linktree'][] = array('name'=>$txt['wiki'], 'url' => $scripturl . '?action=wiki');
-	
+    
 	// Make sure we have the template loaded up
 	loadTemplate('SimpleWiki');
     // Now setup our template layers
@@ -184,9 +184,42 @@ function wiki_namespace_wikipedia($page_uriname, $page_data)
     redirectexit('http://en.wikipedia.org/wiki/' . rawurlencode($page_uriname));
 }
 
+/**
+ * SimpleWiki recent revisions namespace.
+ * @author James Robson
+ * @todo As we'll want recent revisions in the history:page_name namespace, move db stuff to subs.
+ * @todo Cache everything.
+ */
 function wiki_special_namespace_recent()
 {
-    
+    global $context, $smcFunc, $scripturl;
+    $_REQUEST['start'] = isset($_REQUEST['start']) ? (int) $_REQUEST['start'] : 0;
+    // @todo offset
+    // Get the latest posts.
+    $res = $smcFunc['db_query']('', 'SELECT pages.realname, pages.uriname, revisions.id_revision, revisions.id_member, revisions.name_editor, revisions.time
+                                    FROM {db_prefix}simplewiki_pages AS pages, {db_prefix}simplewiki_revisions AS revisions
+                                    WHERE pages.id_page = revisions.id_page
+                                    ORDER BY revisions.id_revision DESC
+                                    LIMIT {int:start},20', array(
+                                        'start' => $_REQUEST['start'],
+                                    ));
+    while($row = $smcFunc['db_fetch_assoc']($res))
+    {
+        $context['wiki_recent'][] = $row;
+    }
+    // If this was on start=0 I would be worried... it means you have an empty wiki!
+    if(!isset($context['wiki_recent']))
+    {
+        fatal_error('No wiki edits have been found!', false);
+    }
+    else
+    {
+        $context['canonical_url'] = wiki_link('Recent:WikiSpecial', 'start=' . $_REQUEST['start']);
+    }
+	$smcFunc['db_free_result']($res);
+	$res = $smcFunc['db_query']('', 'SELECT count(*) as i
+									FROM {db_prefix}simplewiki_revisions', array());
+	$context['wiki_total_revisions'] = $smcFunc['db_fetch_assoc']($res)['i'];
 }
 
 function wiki_special_namespace_create()
