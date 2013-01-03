@@ -107,7 +107,10 @@ function template_wiki_special_namespace_create()
 function template_wiki_special_namespace_recent()
 {
     global $txt, $scripturl, $context;
+	
+	// Do some pagination
 	echo constructPageIndex(wiki_link('Recent:WikiSpecial'), $_REQUEST['start'], $context['wiki_total_revisions'], 20);
+	
 	echo '
 	<div class="tborder topic_table">
 		<table class="table_grid" cellspacing="0" width="100%">
@@ -118,7 +121,7 @@ function template_wiki_special_namespace_recent()
 	foreach($context['wiki_recent'] as $recent)
 	{
 		echo '
-				<tr><td class="windowbg">'.htmlspecialchars($recent['realname']).'</td><td class="windowbg2">'.timeformat($recent['time']).'</td></tr>';
+				<tr><td class="windowbg"><a href="', wiki_link($recent['realname']), '">', htmlspecialchars($recent['realname']), '</a></td><td class="windowbg2">', timeformat($recent['time']), '</td></tr>';
 	}
 	
 	echo '
