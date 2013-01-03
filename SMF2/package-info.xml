@@ -12,10 +12,10 @@
 		<modification format="xml" type="file">install.xml</modification>
 		<database>install.php</database>
 		<!-- source files -->
-		<require-file name="Sources/Wiki/SimpleWiki.php" destination="$sourcedir" />
-        <require-file name="Sources/Wiki/SimpleWiki-Subs.php" destination="$sourcedir" />
+		<require-file name="SimpleWiki.php" destination="$sourcedir" />
+        <require-file name="SimpleWiki-Subs.php" destination="$sourcedir" />
 		<!-- template files -->
-		<require-file name="Themes/Default/SimpleWiki.template.php" destination="$themedir" />
+		<require-file name="SimpleWiki.template.php" destination="$themedir" />
 		<!-- icons, courtesy of famfamfam silk icons -->
 		<require-file name="icons/wiki_history.png" destination="$themedir/images/buttons" />
 		<require-file name="icons/wiki_edit.png" destination="$themedir/images/buttons" />

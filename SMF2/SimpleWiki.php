@@ -93,8 +93,12 @@ function wiki($call = false)
                 $context['linktree'][] = array('name' => $page['realname'], 'url' => wiki_link($page_parts[1]));
             }
             // And now load the namespace
-            call_user_func('wiki_namespace_' . $page_parts[0], $page_parts[1], $page);
-			// Make sure we're loading the correct sub template.
+            $ns_title = call_user_func('wiki_namespace_' . $page_parts[0], $page_parts[1], $page);
+            if(isset($ns_title))
+            {
+                $context['linktree'][] = array('name' => $ns_title, 'url' => wiki_link($page_parts[0] . ':' . $page_parts[1]));
+            }
+            // Make sure we're loading the correct sub template.
 			$context['sub_template'] = 'wiki_namespace_' . $page_parts[0];
 			$context['wiki']['page_data'] = $page;
         }
@@ -164,6 +168,7 @@ function wiki_namespace_edit($page_uriname, $page_data)
 		'preview_type' => 2,
 	);
 	create_control_richedit($editorOptions);
+    return 'Edit';
 }
 
 /**
@@ -177,6 +182,11 @@ function wiki_namespace_edit($page_uriname, $page_data)
 function wiki_namespace_wikipedia($page_uriname, $page_data)
 {
     redirectexit('http://en.wikipedia.org/wiki/' . rawurlencode($page_uriname));
+}
+
+function wiki_special_namespace_recent()
+{
+    
 }
 
 function wiki_special_namespace_create()
