@@ -41,7 +41,7 @@ function wiki($call = false)
 	// Make sure we have the template loaded up
 	loadTemplate('SimpleWiki');
     // Now setup our template layers
-	$context['template_layers'][] = (WIRELESS ? WIRELESS_PROTOCOL . '_' : '') . 'wiki';
+	$context['template_layers'][] = 'wiki';
 	
     // Come on people... request a page!
     if(!isset($_REQUEST['p']) || empty($_REQUEST['p']))
