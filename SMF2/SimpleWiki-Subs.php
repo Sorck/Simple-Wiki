@@ -189,12 +189,13 @@ function wiki_integrate_menu_buttons(&$menu_buttons)
 function wiki_integrate_load_permissions($permissionGroups, &$permissionList, $leftPermissionGroups, $hiddenPermissions, $relabelPermissions)
 {
 	$permissionList['membergroup'] += array(
-		'wiki_edit' => array(false, 'wiki', 'wiki'),
-		'wiki_admin' => array(false, 'wiki', 'wiki'),
-		'wiki_search' => array(false, 'wiki', 'wiki'),
-		'wiki_protect' => array(false, 'wiki', 'wiki'),
-		'wiki_view_history' => array(false, 'wiki', 'wiki'),
-		'wiki_create' => array(false, 'wiki', 'wiki'),
-		'wiki_delete' => array(false, 'wiki', 'wiki'),
+		'simplewiki_edit' => array(false, 'wiki', 'wiki'),
+		'simplewiki_admin' => array(false, 'wiki', 'wiki'),
+		'simplewiki_search' => array(false, 'wiki', 'wiki'),
+		'simplewiki_protect' => array(false, 'wiki', 'wiki'),
+		'simplewiki_view_history' => array(false, 'wiki', 'wiki'),
+		'simplewiki_create' => array(false, 'wiki', 'wiki'),
+		'simplewiki_delete' => array(false, 'wiki', 'wiki'),
+		'simplewiki_view' => array(false, 'wiki', 'wiki'),
 	);
 }

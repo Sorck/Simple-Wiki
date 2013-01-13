@@ -34,18 +34,18 @@ $txt['wiki_undelete_abrev'] = 'Undelete';
 $txt['wiki_history'] = 'History';
 
 //Permissions
-$txt['permissiongroup_wiki'] = 'SimpleWiki Permissions';
-$txt['permissiongroup_simple_wiki'] = 'Permissions for SimpleWiki';
-$txt['permissionname_wiki_view'] = 'View SimpleWiki Pages';
-$txt['permissionhelp_wiki_view'] = 'Allows access to view SimpleWiki';
-$txt['permissionname_wiki_admin'] = 'Administrate SimpleWiki';
-$txt['permissionhelp_wiki_admin'] = 'This gives the user all wiki privilidges including protection, create, edit and view wiki administration center.';
-$txt['permissionname_wiki_view_history'] = 'Allow Viewing SimpleWiki History';
-$txt['permissionname_wiki_search'] = 'Allow searching of SimpleWiki';
+$txt['permissiongroup_wiki'] = 'Simple Wiki Permissions';
+$txt['permissiongroup_simple_wiki'] = 'Permissions for Simple Wiki';
+$txt['permissionname_wiki_view'] = 'View Simple Wiki Pages';
+$txt['permissionhelp_wiki_view'] = 'Allows the user to view Simple Wiki pages,';
+$txt['permissionname_wiki_admin'] = 'Administrate Simple Wiki';
+$txt['permissionhelp_wiki_admin'] = 'This gives the user all Simple Wiki privilidges including protection, create, edit and view wiki administration center.';
+$txt['permissionname_wiki_view_history'] = 'Allow Viewing Simple Wiki History';
+$txt['permissionname_wiki_search'] = 'Allow searching of Simple Wiki';
 $txt['permissionname_wiki_protect'] = 'Enable users to protect pages';
-$txt['permissionname_wiki_edit'] = 'Allow users to edit SimpleWiki pages';
-$txt['permissionname_wiki_create'] = 'Allow the creation of SimpleWiki pages';
-$txt['permissionname_wiki_delete'] = 'Allow deletion of wiki pages';
+$txt['permissionname_wiki_edit'] = 'Allow users to edit Simple Wiki pages';
+$txt['permissionname_wiki_create'] = 'Allow the creation of Simple Wiki pages';
+$txt['permissionname_wiki_delete'] = 'Allow deletion of Simple Wiki pages';
 
 //Page Protection
 $txt['wiki_protect_page'] = 'Protect Page';
