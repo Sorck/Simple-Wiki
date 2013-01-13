@@ -29,7 +29,7 @@ function GetPage($page_name_uri, $page_revision = null)
 {
     global $smcFunc;
     // Setup our query
-    $qry = "SELECT revisions.body, pages.uriname, revisions.id_member, revisions.name_editor, pages.realname
+    $qry = "SELECT revisions.body, pages.uriname, revisions.id_member, revisions.name_editor, pages.realname, revisions.id_revision, pages.id_page
             FROM {db_prefix}simplewiki_pages AS pages, {db_prefix}simplewiki_revisions AS revisions
             WHERE pages.uriname = {text:page_uriname}";
     $qry .= is_int($page_revision) ? '
@@ -147,7 +147,10 @@ function wikiAllowedTo($perm)
 }
 
 /**
- * Don't use this function if there's a query string needed.
+ * Builds a URL which is formatted for the Wiki.
+ * Now accepts a query string as well :)
+ * @param page_name The page name to link to
+ * @param query_string The query string addon (don't include a '?' or preceeding ';')
  */
 function wiki_link($page_name, $query_string = '')
 {

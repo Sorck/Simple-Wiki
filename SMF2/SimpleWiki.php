@@ -1,6 +1,6 @@
 <?php
 /**
- * @file SimpleWiki-Subs.php
+ * @file SimpleWiki.php
  * @author James Robson
  * 
  * Copyright (c) 2013, James Robson
@@ -22,6 +22,7 @@
  * @todo Move namespaces to their own files.
  * @todo Allow drag and drop extending of SimpleWiki
  * @todo Canonical links.
+ * @todo Improved BBCodes.
 */
 
 if(!defined('SMF'))
@@ -40,7 +41,7 @@ function wiki($call = false)
 	// Make sure we have the template loaded up
 	loadTemplate('SimpleWiki');
     // Now setup our template layers
-	$context['template_layers'][] = 'wiki';
+	$context['template_layers'][] = (WIRELESS ? WIRELESS_PROTOCOL . '_' : '') . 'wiki';
 	
     // Come on people... request a page!
     if(!isset($_REQUEST['p']) || empty($_REQUEST['p']))
@@ -73,7 +74,7 @@ function wiki($call = false)
     
     // Is it the special page?
     $special = strtolower($page_parts[1]) === 'wikispecial';
-    
+	
     // Do we have a valid handler for this namespace?
     if((!$special && function_exists('wiki_namespace_' . $page_parts[0])) || ($special && function_exists('wiki_special_namespace_' . $page_parts[0])))
     {
@@ -88,7 +89,9 @@ function wiki($call = false)
         {
             // Get the page
             $page = GetPage($page_parts[1]);
-            if($page)
+            $context['template_layers'][] = 'wiki_ns';
+			$context['wiki']['page_data'] = $page;
+			if($page)
             {
                 $context['linktree'][] = array('name' => $page['realname'], 'url' => wiki_link($page_parts[1]));
             }
@@ -100,7 +103,7 @@ function wiki($call = false)
             }
             // Make sure we're loading the correct sub template.
 			$context['sub_template'] = 'wiki_namespace_' . $page_parts[0];
-			$context['wiki']['page_data'] = $page;
+
         }
     }
     else
@@ -152,6 +155,8 @@ function wiki_namespace_edit($page_uriname, $page_data)
 		}
 		// OK then, lets save
 		SavePage($page_data['realname'], $_POST['content']);
+		// Make sure they see their finished page
+		redirectexit(wiki_link($page_uriname));
 	}
     $modSettings['disable_wysiwyg'] = true;//!empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
     require_once($sourcedir . '/Subs-Editor.php');
@@ -222,6 +227,69 @@ function wiki_special_namespace_recent()
 	$context['wiki_total_revisions'] = $smcFunc['db_fetch_assoc']($res)['i'];
 }
 
+function wiki_namespace_history($page_uriname, $page_data)
+{
+    global $context, $smcFunc, $scripturl;
+	$current_revision = $page_data ? $page_data['id_revision'] : 0;
+    $_REQUEST['start'] = isset($_REQUEST['start']) ? (int) $_REQUEST['start'] : 0;
+    // @todo offset
+    // Get the latest posts.
+    $res = $smcFunc['db_query']('', 'SELECT pages.realname, pages.uriname, revisions.id_revision, revisions.id_member, revisions.name_editor, revisions.time
+                                    FROM {db_prefix}simplewiki_pages AS pages, {db_prefix}simplewiki_revisions AS revisions
+                                    WHERE pages.uriname = {string:name}
+										AND pages.id_page = revisions.id_page
+                                    ORDER BY revisions.id_revision DESC
+                                    LIMIT {int:start},20', array(
+                                        'start' => $_REQUEST['start'],
+										'name' => $page_uriname,
+                                    ));
+    while($row = $smcFunc['db_fetch_assoc']($res))
+    {
+        $context['wiki_recent'][] = $row;
+    }
+    // If this was on start=0 I would be worried... it means you have an empty wiki!
+    if(!isset($context['wiki_recent']))
+    {
+        fatal_error('No edits for this page have been found!', false);
+    }
+    else
+    {
+        $context['canonical_url'] = wiki_link('History:' . $page_uriname, 'start=' . $_REQUEST['start']);
+    }
+	$smcFunc['db_free_result']($res);
+	$res = $smcFunc['db_query']('', 'SELECT count(*) as i
+									FROM {db_prefix}simplewiki_revisions
+									WHERE id_page = {int:id_page}', array(
+										'id_page' => $page_data['id_page'],
+									));
+	$context['wiki_total_revisions'] = $smcFunc['db_fetch_assoc']($res)['i'];
+}
+
+// @todo custom search index
+function wiki_special_namespace_search()
+{
+	global $smcFunc, $context;
+	$_REQUEST['start'] = isset($_REQUEST['start']) ? (int) $_REQUEST['start'] : 0;
+	$res = $smcFunc['db_query']('', 'SELECT revisions.body, pages.realname, revisions.time
+		FROM {db_prefix}simplewiki_revisions AS revisions,
+			{db_prefix}simplewiki_pages AS pages
+		WHERE pages.id_latest_revision = revisions.id_revision
+			AND MATCH (revisions.body, pages.realname)
+		AGAINST ({text:qry} IN BOOLEAN MODE)
+		LIMIT {int:offset},10', array(
+			'qry' => $_POST['q'],
+			'offset' => $_REQUEST['start']
+		));
+	while($row = $smcFunc['db_fetch_assoc']($res))
+	{
+		$context['wiki_search_results'][] = $row;
+	}
+	if(!isset($context['wiki_search_results']))
+	{
+		fatal_error('No search results found.', false);
+	}
+}
+
 function wiki_special_namespace_create()
 {
 	global $scripturl, $context, $modSettings, $sourcedir;
@@ -264,25 +332,6 @@ function wiki_special_namespace_create()
 
 // ==== END OF NEW EDITION CODE ====
 
-function wiki_init()
-{
-	global $context, $txt, $scripturl;
-	$context['wiki_reports'] = array();
-	$context['html_headers'] .= '<style type="text/css">.decimal_list{list-style:none;}.span_margin{margin-left:0.8em;}.float_left{float:left;}.float_right{float:right;}</style>';
-	loadLanguage('wiki');
-	loadTemplate('wiki');
-	if(isset($_REQUEST['p']))$_REQUEST['p']=htmlspecialchars($_REQUEST['p']);
-	//linktree...
-	$context['linktree'][] = array('name'=>$txt['wiki'],'url'=>$scripturl.'?action=wiki',);
-	$context['name_space'] = false;
-	$context['protection_array'] = array(
-		0 => true, //obviously if there's no protection then you can edit it :P
-		1 => $context['user']['is_admin'],
-		2 => wikiAllowedTo('wiki_admin'),
-		3 => $context['user']['is_logged'],
-	);
-}
-
 function wiki_view_all()
 {
 	global $smcFunc, $txt, $context, $scripturl;
@@ -312,24 +361,6 @@ function wiki_view_all()
 	$context['wiki_page_list'] = $pages;
 }
 
-function wiki_can_edit($p_level)
-{
-	global $context;
-	//this function handles protection, based upon given protection level
-	$p_level = intval($p_level);
-	//admin's are always allowed, not really admins otherwise :P
-	if($context['user']['is_admin'])
-		return true;
-	//if we can't edit then it's a definite no no, wiki admins being an exception
-	if(!wikiAllowedTo('wiki_edit'))
-		return false;
-	//if the protection level doesn't exist then someone's been doing some changes, we allow as long as they're not a guest
-	if(!isset($context['protection_array'][$p_level]))
-		return $context['user']['is_logged']?true:false;
-	//so lets get the protection level
-	return $context['protection_array'][$p_level];
-}
-
 function wiki_delete()
 {
 	global $smcFunc, $context, $scripturl;
@@ -350,33 +381,6 @@ function wiki_delete()
 	$smcFunc['db_query']('', 'UPDATE {db_prefix}wiki_pages
 		SET deleted={int:deleted} WHERE id={int:id}', array('id'=>intval($page['id']), 'deleted'=>$deleted));
 	redirectexit($scripturl.'?action=wiki;sa=history;p='.$page['title']);
-}
-
-function wiki_main()
-{
-	global $sourcedir;
-	// !!! maybe we could add dynamic file detection here?
-	$sactions = array(
-		'edit' => 'wiki_edit',
-		'save' => 'wiki_save',
-		'admin' => 'wiki_admin',
-		'create' => 'wiki_create',
-		'history' => 'wiki_history',
-		'protect' => 'wiki_protect',
-		'search' => 'wiki_search',
-		'delete' => 'wiki_delete',
-		'v_all' => 'wiki_view_all',
-	);
-	if(isset($_REQUEST['sa'])&&isset($sactions[$_REQUEST['sa']]))
-		return $sactions[$_REQUEST['sa']];
-	elseif(file_exists($sourcedir.'/wiki/'.$_REQUEST['sa'].'.function.php'))
-	{
-		require_once($sourcedir.'/'.$_REQUEST['sa'].'.function.php');
-		// fairly complex...
-		return 'wiki_'.(function_exists('wiki_'.$_REQUEST['sa']) ? $_REQUEST['sa']:'page');
-	}
-	else
-		return 'wiki_page';
 }
 
 function wiki_upload()
@@ -417,54 +421,6 @@ function wiki_upload()
 	}
 	$context['page_title'] = 'Wiki Uploads';
 	$context['wiki_template'] = 'upload';
-}
-
-//handles all file downloading, passes 
-function wiki_download_file()
-{
-	global $smcFunc, $txt;
-	if(isset($_REQUEST['img']))
-		wiki_display_img();
-	if(!isset($_REQUEST['file']))
-		fatal_error($txt['wiki_no_file']);
-}
-
-//this function shows an uploaded image
-function wiki_display_img()
-{
-	global $smcFunc, $context, $boarddir;
-	//is there a requested image
-	$req = isset($_REQUEST['id']) ? intval($_REQUEST['id']):false;
-	//if there's no image then we can't do anything
-	if(!$req)
-		die();
-	$res = $smcFunc['db_query']('', 'SELECT * FROM {db_prefix}wiki_files WHERE id = {int:id}', array($req));
-	$img = $smcFunc['db_fetch_assoc']($res);
-	//no image? stop processing then
-	if(!is_array($img))
-		die();
-	$image = $boarddir.'/wiki_imgs/'.$img['image'];
-	if($img['type'] == 'jpeg')
-	{
-		$im = imagecreatefromjpeg($image);
-		header('content-type: image/jpeg');
-		imagejpeg($im);
-	}
-	if($img['type'] == 'gif')
-	{
-		$im = imagecreatefromgif($image);
-		header('content-type: image/gif');
-		imagegif($im);
-	}
-	if($img['type'] == 'png')
-	{
-		$im = imagecreatefrompng($image);
-		header('content-type: image/png');
-		imagepng($im);
-	}
-	imagedestroy($im);
-	die();
-	// !!! should record hits
 }
 
 function wiki_search()
@@ -546,207 +502,6 @@ function wiki_protect()
 	}
 }
 
-function wiki_history()
-{
-	global $txt, $smcFunc, $user_info, $scripturl, $context;
-	//are we allowed to see the history?
-	wikiIsAllowedTo('wiki_view_history');
-	//does the page exist?
-	if(!wiki_fetch_page($_REQUEST['p'], true))fatal_error(sprintf($txt['wiki_error_no_such_page'], $_REQUEST['p']));
-	//do the query to get ALL history
-	$sql = 'SELECT {db_prefix}wiki_pages.*, {db_prefix}members.member_name, {db_prefix}members.real_name 
-		FROM {db_prefix}wiki_pages LEFT JOIN {db_prefix}members 
-		ON {db_prefix}wiki_pages.user={db_prefix}members.id_member 
-		WHERE title={string:name} 
-		ORDER BY time DESC 
-		LIMIT {int:offset},10';
-	$res = $smcFunc['db_query']('',$sql,array('name'=>$_REQUEST['p'],'offset'=>floor(intval($_REQUEST['start']))));
-	while($row = $smcFunc['db_fetch_assoc']($res))
-	{
-		$rows[] = $row;
-	}
-	//quickly find how many approapriate rows there are (without limit)
-	$res = $smcFunc['db_query']('','SELECT * FROM {db_prefix}wiki_pages WHERE title={string:name}', array('name'=>$_REQUEST['p']));
-	$_REQUEST['start'] = isset($_REQUEST['start'])?intval($_REQUEST['start']):0;
-	$context['history_pageIndex'] = constructPageIndex($scripturl.'index.php?action=wiki;sa=history;p='.$_REQUEST['p'], $_REQUEST['start'], $smcFunc['db_num_rows']($res), 10);
-	$context['history_pages'] = $rows;
-	$context['wiki_template'] = 'history';
-	$context['linktree'][] = array('url'=>'index.php?action=wiki;sa=history;p='.$_REQUEST['p'], 'name' => $txt['wiki_history'],);
-	$context['page_title'] = $txt['wiki_history'];
-}
-
-function wiki_save()
-{
-	global $txt, $smcFunc, $user_info, $scripturl;
-	//are we allowed to save?
-	$context['robot_no_index'] = true;
-	wikiIsAllowedTo('wiki_edit');
-	if(!isset($_REQUEST['p']))fatal_error($txt['wiki_no_page']);
-	elseif(empty($_REQUEST['p']))fatal_error($txt['wiki_no_page']);
-	// !!! should add a test for page protection
-	//get current page & protection, if the page exists obviously
-	$page = wiki_fetch_page($_REQUEST['p'], true, false);
-	$protection = $page?$page['protected']:'0';
-	$content = wiki_preparse($_POST['wiki_content']);
-	//test for permission on wiki pages
-	if(!isset($_POST['wiki_content']))fatal_error($txt['wiki_blank_content']);
-	//now, attempt to save
-	$smcFunc['db_insert']('insert', '{db_prefix}wiki_pages',
-		array(
-			'title' => 'text', 'time' => 'int', 'ip' => 'text', 'user' => 'int', 'content' => 'text', 'protected' => 'text'
-		),
-		array(
-			$_REQUEST['p'], time(), $_SERVER['REMOTE_ADDR'], $user_info['id'], $content, $protection
-		)
-	);
-	//now update the cache...
-	$new = $page;
-	$new['content'] = $content;
-	$new['time'] = time();
-	cache_put_data('wiki_'.$_REQUEST['p'], $new);
-	redirectexit($scripturl.'?action=wiki;p='.$_REQUEST['p']);
-}
-
-function wiki_create()
-{
-	global $context, $txt, $modSettings, $scripturl, $sourcedir;
-	$context['robot_no_index'] = true;
-	//are we allowed to edit/create?
-	wikiIsAllowedTo('wiki_create');	
-	$page = isset($_REQUEST['p']) ? $_REQUEST['p'] : '';
-	if(isset($_REQUEST['p']))
-	{
-		//fetch the page
-		$pagecontent = wiki_fetch_page($page);
-		if($pagecontent)redirectexit($scripturl.'?action=wiki;sa=edit;p='.$page);
-	}
-	if(WIRELESS)$context['sub_template'] = WIRELESS_PROTOCOL.'_wiki_edit';
-	$context['wiki_template'] = 'create';
-	$context['linktree'][] = array('url'=>'index.php?action=wiki;sa=create;p='.$page, 'name' => $txt['wiki_create'],);
-	$context['page_title'] = sprintf($txt['wiki_creating'], $_REQUEST['p']);
-	$modSettings['disable_wysiwyg'] = !empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
-	require_once($sourcedir . '/Subs-Editor.php');
-	$editorOptions = array(
-		'id' => 'wiki_content',
-		'value' => '',
-		'labels' => array(
-			'post_button' => 'Post',
-		),
-		// add height and width for the editor
-		'height' => '175px',
-		'width' => '100%',
-		// We do XML preview here.
-		'preview_type' => 2,
-	);
-	create_control_richedit($editorOptions);
-}
-
-function wiki_edit()
-{
-	global $context, $txt, $modSettings, $scripturl, $sourcedir;
-	$context['robot_no_index'] = true;
-	$page = isset($_REQUEST['p']) ? $_REQUEST['p'] : 'Main Page';
-	$_REQUEST['p'] = $page;
-	//are we allowed to edit? if not then send them to the main wiki page
-	if(!wikiAllowedTo('wiki_edit'))redirectexit('index.php?action=wiki;p='.$page);
-	//fetch the page
-	$pagecontent = wiki_fetch_page($page);
-	if(!wiki_can_edit($pagecontent['protected']))fatal_error(sprintf($txt['wiki_is_protected'], $pagecontent['title']));
-	if(!$pagecontent)redirectexit($scripturl.'?action=wiki;sa=create;p='.$page);
-	$context['wiki_page_content'] = $pagecontent['content'];
-	if(WIRELESS)$context['sub_template'] = WIRELESS_PROTOCOL.'_wiki_edit';
-	$context['wiki_template'] = 'edit';
-	$context['linktree'][] = array('url'=>'index.php?action=wiki;p='.$page, 'name' => $page,);
-	$context['linktree'][] = array('url'=>'index.php?action=wiki;sa=edit;p='.$page, 'name' => $txt['wiki_edit'],);
-	$context['page_title'] = sprintf($txt['wiki_editting'], htmlspecialchars($page));
-	$modSettings['disable_wysiwyg'] = !empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
-	require_once($sourcedir . '/Subs-Editor.php');
-	$editorOptions = array(
-		'id' => 'wiki_content',
-		'value' => $context['wiki_page_content'],
-		'labels' => array(
-			'post_button' => 'Post',
-		),
-		// add height and width for the editor
-		'height' => '175px',
-		'width' => '100%',
-		// We do XML preview here.
-		'preview_type' => 2,
-	);
-	create_control_richedit($editorOptions);
-}
-
-function wiki_page()
-{
-	global $context, $txt, $scripturl;
-	if(WIRELESS)$context['sub_template'] = WIRELESS_PROTOCOL.'_wiki_page';
-	$context['wiki_template'] = 'page'; //this loads up the template for viewing standard pages
-	//namespaces
-	$nameSpaces = array(
-		//'User' => array('function'=>'user'),
-		//'Category' => array('function'=>'cat'),
-	);
-
-	$parray = explode(':', $_REQUEST['p']);
-	if(!isset($parray[1]))
-		$nm = false;
-	else
-		$nm = $parray[0];
-	
-	$_REQUEST['p_namespace'] = isset($nm)&&isset($nameSpaces[$nm])?true:false;
-	//$xy = isset($nm)&&isset($nameSpaces[$nm])?true:false;
-	$_REQUEST['p_no_namespace'] = str_replace($nm.':', '', $_REQUEST['p']);
-	$nm = strtolower($nm);
-	if($nm !== false && isset($nameSpaces[$nm]))
-	{
-		call_user_func('wiki_namespace_'.$nameSpaces[$nm]['function']);
-	}
-	//the above is our old ns system, the following will be better for future use :)
-	elseif($nm !== false && file_exists($sourcedir.'/wiki/'.$nm.'.ns.php'))
-	{
-		require_once($sourcedir.'/wiki/'.$nm.'.ns.php');
-		call_user_func('wiki_namespace_'.$nm);
-	}
-		
-	if(isset($_REQUEST['id'])&&!empty($_REQUEST['id']))
-	{
-		$content = wiki_fetch_pageById($_REQUEST['id']);
-		if($content==false)fatal_error($txt['wiki_error_bad_id']);
-		$context['page_title'] = $txt['wiki'].' - '.$content['title'];
-		$_REQUEST['p'] = $content['title'];
-	}
-	else
-	{
-		$page = isset($_REQUEST['p']) ? $_REQUEST['p'] : 'Main Page';
-		$context['wiki_current_page'] = $page;
-		$_REQUEST['p'] = $page;
-		$context['page_title'] = $txt['wiki'].' - '.$page;
-		$content = wiki_fetch_page($page);
-		if($content==false&&!$_REQUEST['p_namespace'])redirectexit($scripturl.'?action=wiki;sa=create;p='.$_REQUEST['p']);
-	}
-	//if(!is_array($content))die(print_r($content));
-	$context['wiki_page_content'] = wiki_parse($content['content'], true, true);
-	$context['linktree'][] = array('url'=>'index.php?action=wiki;p='.$_REQUEST['p'], 'name' => $_REQUEST['p']);
-}
-
-function wiki_admin()
-{
-	global $context, $txt;
-	// !!! must work on, sensitive stuff should be in the main admin cp
-	//we have our own admin cp dedicated just to the wiki!
-	if(!wikiAllowedTo('wiki_admin'))redirectexit('index.php?action=wiki');
-	$context['wiki_template'] = 'admin';
-	$context['page_title'] = $txt['wiki_admin'];
-	
-	//areas
-	$areas = array(
-		'manage_bans' => 'wiki_manage_bans',
-		'config' => 'wiki_admin_config',
-	);
-	if(isset($_REQUEST['area']) && isset($areas[$_REQUEST['area']]))
-		$areas[$_REQUEST['area']]();
-}
-
 function wiki_manage_bans()
 {
 	global $scripturl, $smcFunc, $context;
@@ -765,69 +520,6 @@ function wiki_manage_bans()
 		$smcFunc['db_insert']('insert', '{db_prefix}wiki_bans', array('user' => 'int'), array($u));
 		redirectexit($scripturl.'?action=wiki;sa=admin;area=manage_bans');
 	}
-}
-
-function wiki_admin_config()
-{
-	global $smcFunc;
-	// !!! should this be stricter than wiki admins? such as a specific wiki_config permission?
-	$context['wiki_template'] = 'config';
-}
-
-function wiki_fetch_page($name, $allow_deleted = false, $cache = true)
-{
-	global $smcFunc;
-	//first see if it's in the cache
-	if($cache)$cached = cache_get_data('wiki_'.$name);
-	if(!$cache || !$cached)
-	{
-		//select query
-		$sql = "SELECT * FROM {db_prefix}wiki_pages WHERE title={string:name}".($allow_deleted?'':"AND deleted='0'")."ORDER BY time DESC LIMIT 0,1";
-		$resource = $smcFunc['db_query']('', $sql, array('name'=>$name,));
-		$row = $smcFunc['db_fetch_assoc']($resource);
-		//store in the cache to reduce the number of queries in future page loads
-		cache_put_data('wiki_'.$name, $row);
-	}
-	else
-		$row = $cached;
-	// !!! handle redirects
-	if(!is_array($row)||empty($row['content']))
-		return false;
-	
-	//update the database to say we've viewed it
-	$smcFunc['db_query']('', 'UPDATE {db_prefix}wiki_pages SET views = views + 1 WHERE title = {string:page}', array('page' => $row['title']));
-	
-	return $row;
-}
-
-function wikiLog()
-{
-	global $smcFunc, $user_info;
-	//we don't have the db tables so don't do anything
-	return;
-	$smcFunc['db_insert']('insert', '{db_prefix}wiki_log_view',
-		array('user' => 'int', 'ip' => 'text', 'page' => 'text'),
-		array($user_info['id'], $_SERVER['REMOTE_ADDR'], $_REQUEST['p']));
-}
-
-function wiki_fetch_pageById($id)
-{
-	global $smcFunc;
-	$cached = cache_get_data('wiki-id_'.$id);
-	if(!$cached)
-	{
-		//select query
-		$sql = "SELECT * FROM {db_prefix}wiki_pages WHERE id={int:id} ORDER BY time DESC LIMIT 0,1";
-		$resource = $smcFunc['db_query']('', $sql, array('id'=>$id,));
-		$row = $smcFunc['db_fetch_assoc']($resource);
-		cache_put_data('wiki-id_'.$id);
-	}
-	else
-		$row = $cached;
-	// !!! handle redirects
-	if(!is_array($row)||empty($row['content']))
-		return false;
-	return $row;
 }
 
 $wiki_headers = array();
@@ -927,14 +619,6 @@ function wiki_parse_categories($matches)
 	}
 	return '[categories]'.$matches[1].'[/categories]';
 }
-
-function wiki_search_escape($text)
-{
-	$text = str_replace(array('\'', '"', '\\'), '', $text);
-	//$text = addslashes($text);
-	return $text;
-}
-
 function wiki_list_cats()
 {	
 	global $smcFunc, $scripturl;
@@ -997,108 +681,5 @@ function wiki_varfe($matches)
 	if(!isset($GLOBALS['wiki']['temp'][$id]))
 		return;
 	return un_htmlspecialchars($GLOBALS['wiki']['temp'][$id]);
-}
-
-//this is a function to aid in passing variables to templates
-function wiki_varf($matches)
-{
-	//the match better have something in it!
-	$match = $matches[0];
-	if(empty($match))return;
-	//is there an active variable to replace it with?
-	foreach($GLOBALS['wiki']['temp'] as $act => $row)
-	{
-		$id = $act;
-		//we only want the 1st available variable
-		break;
-	}
-	if(!isset($id))return;
-	$var = $GLOBALS['wiki']['temp'][$id];
-	//better make sure it doesn't continue to exist
-	unset($GLOBALS['wiki']['temp'][$id]);
-	//now return the data
-	return un_htmlspecialchars($var);
-}
-
-function wiki_is_banned($fatal = false)
-{
-	global $smcFunc, $user_info, $context;
-	//if we've allready tested then no need to test again
-	if(isset($context['wiki_banned']) && !$fatal) return;
-	//"innocent until proven guilty" is our motto here
-	$context['wiki_banned'] = false;
-	$noban_admin = true;
-	//admins can't be banned, else it would be chaos :P
-	if(allowedTo('wiki_admin') && $noban_admin)
-		return false;
-	//we cache our bans to reduce server load, this means a ban can take several minutes to come into effect
-	$cache = cache_get_data('wiki_bans_'.$user_info['id']);
-	//$cache = false;
-	if(!$cache)
-	{
-		//now fetch from the banned table
-		$res = $smcFunc['db_query']('', 'SELECT * 
-			FROM {db_prefix}wiki_bans 
-			WHERE ip = {string:ip} 
-			OR user = {int:user}',
-			array('ip'=>$_SERVER['REMOTE_ADDR'], 'user'=>$user_info['id'])
-		);
-		$row = $smcFunc['db_fetch_assoc']($res);
-		if(!is_array($row))
-		{
-			$context['wiki_banned'] = false;
-			cache_put_data('wiki_bans_'.$user_info['id'], array('banned' => false), 300);
-			return false;
-		}
-		else
-		{
-			cache_put_data('wiki_bans_'.$user_info['id'], array('banned' => true), 300);
-			if($fatal)
-				fatal_error('You have been banned from the wiki, either because of your IP or user account, you may be able to continue browsing but you cannot edit any pages');
-			$context['wiki_reports'][] = 'You\'ve been banned from this wiki hence cannot edit pages.';
-			return true;
-		}
-	}
-	//the cache says that we're banned! if fatal throw an error, else just return 
-	elseif($cache['banned'])
-	{
-		$context['wiki_banned'] = true;
-		$context['wiki_reports'][] = 'You\'ve been banned from this wiki hence cannot edit pages.';
-		if($fatal)
-		{
-			fatal_error('You have been banned from the wiki, either because of your IP or user account, you may be able to continue browsing but you cannot edit any pages');
-		}
-		else
-			return true;
-	}
-	//I'd say we're not banned then
-	else
-	{
-		return false;
-	}
-}
-
-//this function formats the URL depending upon if SEF/SEO/Pretty URLS are enabled :)
-function wiki_pageUrl($page_name, $type = 'page')
-{
-	global $scripturl, $modsettings;
-	//Is the wiki SEF online?
-	if(empty($modsettings['wiki_sef_online']))
-		return $scripturl.'?action=wiki;p='.$page_name;
-	$url = str_replace('index.php', '', $scripturl);
-	$url .= 'wiki/';
-	$conversions = array(
-		'edit' => 'edit/',
-		'page' => '',
-		'protect' => 'protect/',
-		'create' => 'create/',
-		'history' => 'history/',
-	);
-	if($type == 'edit')
-	{
-		$url .= 'edit/';
-	}
-	$url .= $page_name;
-	return $url;
 }
 ?>
