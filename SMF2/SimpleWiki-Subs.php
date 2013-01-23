@@ -20,6 +20,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * 
  * @todo Page locking needs a table to track it's changes.
+ * @todo But page locking needs to exist first.
 */
 
 if(!defined('SMF'))
