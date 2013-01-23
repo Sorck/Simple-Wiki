@@ -224,7 +224,9 @@ function wiki_special_namespace_recent()
 	$smcFunc['db_free_result']($res);
 	$res = $smcFunc['db_query']('', 'SELECT count(*) as i
 									FROM {db_prefix}simplewiki_revisions', array());
-	$context['wiki_total_revisions'] = $smcFunc['db_fetch_assoc']($res)['i'];
+    // Have to go the long way round since we can't guarantee access to PHP 5.4
+    $tmp = $smcFunc['db_fetch_assoc']($res);
+	$context['wiki_total_revisions'] = $tmp['i'];
 }
 
 function wiki_namespace_history($page_uriname, $page_data)
@@ -262,7 +264,8 @@ function wiki_namespace_history($page_uriname, $page_data)
 									WHERE id_page = {int:id_page}', array(
 										'id_page' => $page_data['id_page'],
 									));
-	$context['wiki_total_revisions'] = $smcFunc['db_fetch_assoc']($res)['i'];
+	$tmp = $smcFunc['db_fetch_assoc']($res);
+    $context['wiki_total_revisions'] = $tmp['i'];
 }
 
 // @todo custom search index
@@ -313,6 +316,7 @@ function wiki_special_namespace_create()
 		// Redirect...
 		redirectexit(wiki_link(wiki_to_uriname($_POST['t'])));
 	}
+    // Lets setup SMFs fancy editor
     $modSettings['disable_wysiwyg'] = true;//!empty($modSettings['disable_wysiwyg']) || empty($modSettings['enableBBC']);
     require_once($sourcedir . '/Subs-Editor.php');
 	$editorOptions = array(
