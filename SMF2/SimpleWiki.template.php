@@ -193,5 +193,5 @@ function template_wiki_make_toolbar($tools)
 
 function template_wiki_copyright()
 {
-	echo '<div class="centertext smalltext"><a href="http://sorck.net/projects/simplewiki">SimpleWiki &copy; 2010-2013, James Robson</a></div>';
+	echo '<div class="centertext smalltext"><a href="https://github.com/Sorck/Simple-Wiki">SimpleWiki &copy; 2010-2013, James Robson</a></div>';
 }
