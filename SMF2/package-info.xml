@@ -5,7 +5,7 @@
 	<version>0.1.0a</version>
 	<type>modification</type>
 	<name>SimpleWiki - intergrated Wiki for SMF</name>
-	<homepage>http://simplewiki.co.uk</homepage>
+	<homepage>https://github.com/Sorck/Simple-Wiki</homepage>
 
 	<install for="2.0-2.0.99">
 		<readme lang="english" parsebbc="true" type="file">readme.english.txt</readme>
